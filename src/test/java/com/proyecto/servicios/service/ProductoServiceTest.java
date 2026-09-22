@@ -161,17 +161,38 @@ class ProductoServiceTest {
     }
 
     @Test
-    void testObtenerProductosAlmacenadosVacioCuandoAmbosVacios() {
+    void testObtenerProductosAlmacenadosConsultaApiCuandoAmbosVacios() {
         when(valueOperations.get(anyString())).thenReturn(null);
         when(productoRepository.findAll()).thenReturn(java.util.Collections.emptyList());
+
+        String xmlSample = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
+                "<RESPONSE>" +
+                "    <MENSAJE>" +
+                "        <TEXTO>Operacion realizada con exito</TEXTO>" +
+                "    </MENSAJE>" +
+                "    <PRODUCTOS>" +
+                "        <producto servicio=\"TELMEX\" producto=\"Pago Telmex\" idServicio=\"102\" idProducto=\"5002\" idCatTipoServicio=\"1\" tipoFront=\"0\">" +
+                "            <legend><![CDATA[Leyenda]]></legend>" +
+                "        </producto>" +
+                "    </PRODUCTOS>" +
+                "</RESPONSE>";
+
+        GestoPagoToken mockToken = new GestoPagoToken();
+        mockToken.setToken("mock_jwt_token");
+
+        when(tokenService.obtenerTokenActivo(anyInt(), anyString())).thenReturn(Optional.of(mockToken));
+        when(gestoPagoServiceClient.getProductListRaw(anyString())).thenReturn(xmlSample);
 
         ProductoListResponse response = productoService.obtenerProductosAlmacenados();
 
         assertNotNull(response);
-        assertEquals(1, response.getCodigo());
-        assertEquals("NINGUNO", response.getOrigen());
-        assertEquals("No hay productos almacenados en Redis ni en PostgreSQL", response.getMensaje());
-        assertTrue(response.getProductos().isEmpty());
+        assertEquals(0, response.getCodigo());
+        assertEquals("GESTOPAGO_API", response.getOrigen());
+        assertEquals(1, response.getProductos().size());
+
+        // Verificamos que al estar vacios se guardo en Redis y en PostgreSQL
+        verify(valueOperations, times(1)).set(anyString(), any(), any());
+        verify(productoRepository, times(1)).saveAll(any());
     }
 }
 

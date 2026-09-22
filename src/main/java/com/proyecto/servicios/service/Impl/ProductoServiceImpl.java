@@ -151,7 +151,6 @@ public class ProductoServiceImpl implements ProductoService {
 
     @Override
     public ProductoListResponse obtenerProductosAlmacenados() {
-        // 1. Intentar consultar en Redis
         try {
             log.info("Consultando productos almacenados en Redis (key='{}')...", REDIS_PRODUCTOS_KEY);
             Object cachedData = redisTemplate.opsForValue().get(REDIS_PRODUCTOS_KEY);
@@ -183,7 +182,6 @@ public class ProductoServiceImpl implements ProductoService {
             log.warn("Fallo la consulta en Redis a causa de: {}. Intentando consulta en PostgreSQL...", e.getMessage());
         }
 
-        // 2. Si Redis esta vacio o fallo, consultar en PostgreSQL
         try {
             log.info("Consultando productos almacenados en PostgreSQL (tabla gestopago_productos)...");
             List<ProductoEntity> entities = productoRepository.findAll();
@@ -216,28 +214,17 @@ public class ProductoServiceImpl implements ProductoService {
             log.error("Error al consultar productos en PostgreSQL: {}", e.getMessage(), e);
         }
 
-        // 3. Si ambas plataformas estan vacias
-        log.info("No se encontraron productos almacenados ni en Redis ni en PostgreSQL.");
-        return ProductoListResponse.builder()
-                .codigo(1)
-                .mensaje("No hay productos almacenados en Redis ni en PostgreSQL")
-                .origen("NINGUNO")
-                .productos(new ArrayList<>())
-                .build();
+        // 3. Si ambas plataformas estan vacias, consultar directamente a la API de GestoPago (y auto-guardar en Redis + PostgreSQL)
+        log.info("No se encontraron productos ni en Redis ni en PostgreSQL. Consultando en vivo a la API de GestoPago...");
+        return obtenerListaProductos();
     }
 
 
-
-    /**
-     * Almacena los productos de forma permanente en PostgreSQL y en la memoria cache de Redis.
-     * Si Redis falla, se registra en logs pero la persistencia en PostgreSQL continua.
-     */
     private void guardarProductosConFallback(List<ProductoDTO> listaProductos) {
         if (listaProductos == null || listaProductos.isEmpty()) {
             return;
         }
 
-        // 1. Intentar guardar en Redis (Caché rápido)
         try {
             log.info("Almacenando {} productos en Redis (key='{}')...", listaProductos.size(), REDIS_PRODUCTOS_KEY);
             redisTemplate.opsForValue().set(REDIS_PRODUCTOS_KEY, listaProductos, Duration.ofHours(24));
@@ -248,13 +235,9 @@ public class ProductoServiceImpl implements ProductoService {
                     redisException.getMessage());
         }
 
-        // 2. Guardar SIEMPRE en PostgreSQL (Persistencia en base de datos)
         guardarEnPostgreSQL(listaProductos);
     }
 
-    /**
-     * Guarda / actualiza la lista de productos en la base de datos PostgreSQL.
-     */
     private void guardarEnPostgreSQL(List<ProductoDTO> listaProductos) {
         try {
             List<ProductoEntity> entities = new ArrayList<>();
