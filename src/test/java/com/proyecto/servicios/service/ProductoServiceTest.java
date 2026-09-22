@@ -79,8 +79,8 @@ class ProductoServiceTest {
 
         // Verificamos que se intento guardar en Redis
         verify(valueOperations, times(1)).set(anyString(), any(), any());
-        // Verificamos que NO se llamo a PostgreSQL porque Redis fue exitoso
-        verify(productoRepository, never()).saveAll(any());
+        // Verificamos que SIEMPRE se guarda tambien en PostgreSQL
+        verify(productoRepository, times(1)).saveAll(any());
     }
 
     @Test

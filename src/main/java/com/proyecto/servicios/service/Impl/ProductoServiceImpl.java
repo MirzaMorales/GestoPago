@@ -229,24 +229,27 @@ public class ProductoServiceImpl implements ProductoService {
 
 
     /**
-     * Intenta almacenar los productos en Redis. Si Redis falla por cualquier motivo,
-     * captura la excepcion y ejecuta el fallback guardando en PostgreSQL DB.
+     * Almacena los productos de forma permanente en PostgreSQL y en la memoria cache de Redis.
+     * Si Redis falla, se registra en logs pero la persistencia en PostgreSQL continua.
      */
     private void guardarProductosConFallback(List<ProductoDTO> listaProductos) {
         if (listaProductos == null || listaProductos.isEmpty()) {
             return;
         }
 
+        // 1. Intentar guardar en Redis (Caché rápido)
         try {
             log.info("Almacenando {} productos en Redis (key='{}')...", listaProductos.size(), REDIS_PRODUCTOS_KEY);
             redisTemplate.opsForValue().set(REDIS_PRODUCTOS_KEY, listaProductos, Duration.ofHours(24));
             log.info("Productos guardados exitosamente en Redis.");
 
         } catch (Exception redisException) {
-            log.warn("Fallo el almacenamiento en Redis a causa de: {}. Ejecutando FALLBACK a PostgreSQL...",
+            log.warn("No se pudo almacenar en Redis a causa de: {}. Continuando con guardado en PostgreSQL...",
                     redisException.getMessage());
-            guardarEnPostgreSQL(listaProductos);
         }
+
+        // 2. Guardar SIEMPRE en PostgreSQL (Persistencia en base de datos)
+        guardarEnPostgreSQL(listaProductos);
     }
 
     /**
