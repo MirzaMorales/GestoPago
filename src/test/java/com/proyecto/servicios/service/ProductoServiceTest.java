@@ -45,7 +45,11 @@ class ProductoServiceTest {
     void setUp() {
         MockitoAnnotations.openMocks(this);
         when(redisTemplate.opsForValue()).thenReturn(valueOperations);
-        productoService = new ProductoServiceImpl(gestoPagoServiceClient, tokenService, productoRepository, redisTemplate);
+        productoService = new ProductoServiceImpl();
+        ReflectionTestUtils.setField(productoService, "gestoPagoServiceClient", gestoPagoServiceClient);
+        ReflectionTestUtils.setField(productoService, "tokenService", tokenService);
+        ReflectionTestUtils.setField(productoService, "productoRepository", productoRepository);
+        ReflectionTestUtils.setField(productoService, "redisTemplate", redisTemplate);
         ReflectionTestUtils.setField(productoService, "idDistribuidor", 83);
         ReflectionTestUtils.setField(productoService, "codigoDispositivo", "GPS83-TPV-17");
     }

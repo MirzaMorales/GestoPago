@@ -11,6 +11,7 @@ import com.proyecto.servicios.service.ProductoService;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
@@ -35,26 +36,26 @@ public class ProductoServiceImpl implements ProductoService {
 
     private static final String REDIS_PRODUCTOS_KEY = "gestopago:productos";
 
-    private final GestoPagoServiceClient gestoPagoServiceClient;
-    private final GestoPagoTokenService tokenService;
-    private final ProductoRepository productoRepository;
-    private final RedisTemplate<String, Object> redisTemplate;
+    @Autowired
+    private GestoPagoServiceClient gestoPagoServiceClient;
+
+    @Autowired
+    private GestoPagoTokenService tokenService;
+
+    @Autowired
+    private ProductoRepository productoRepository;
+
+    @Autowired
+    private RedisTemplate<String, Object> redisTemplate;
+
+    @Autowired
+    private ObjectMapper objectMapper;
 
     @Value("${gestopago.auth.id-distribuidor}")
     private Integer idDistribuidor;
 
     @Value("${gestopago.auth.codigo-dispositivo}")
     private String codigoDispositivo;
-
-    public ProductoServiceImpl(GestoPagoServiceClient gestoPagoServiceClient,
-                               GestoPagoTokenService tokenService,
-                               ProductoRepository productoRepository,
-                               RedisTemplate<String, Object> redisTemplate) {
-        this.gestoPagoServiceClient = gestoPagoServiceClient;
-        this.tokenService = tokenService;
-        this.productoRepository = productoRepository;
-        this.redisTemplate = redisTemplate;
-    }
 
     @Override
     public ProductoListResponse obtenerListaProductos() {
@@ -160,7 +161,7 @@ public class ProductoServiceImpl implements ProductoService {
                 if (cachedData instanceof List) {
                     List<?> rawList = (List<?>) cachedData;
                     if (!rawList.isEmpty()) {
-                        ObjectMapper mapper = new ObjectMapper();
+                        ObjectMapper mapper = objectMapper != null ? objectMapper : new ObjectMapper();
                         productos = mapper.convertValue(rawList, new TypeReference<List<ProductoDTO>>() {});
                     } else {
                         productos = new ArrayList<>();
