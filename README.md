@@ -84,6 +84,7 @@ flowchart TD
 * **Spring Cloud OpenFeign** (Consumo cliente HTTP de API REST/XML)
 * **Flyway Migration** (Control de versiones del esquema de base de datos)
 * **OpenAPI 3.0 / Swagger UI** (Documentación interactiva de endpoints)
+* **MapStruct** (Mapeo automático y desacoplado entre Entidades JPA y DTOs)
 * **Lombok** (Generación de código boilerplate)
 * **JUnit 5 & Mockito** (Pruebas unitarias de servicios)
 

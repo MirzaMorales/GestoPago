@@ -8,6 +8,7 @@ import com.proyecto.servicios.model.gestopago.ProductoListResponse;
 import com.proyecto.servicios.repositorys.gestopago.ProductoRepository;
 import com.proyecto.servicios.service.GestoPagoTokenService;
 import com.proyecto.servicios.service.ProductoService;
+import com.proyecto.servicios.mapper.ProductoMapper;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
@@ -44,6 +45,9 @@ public class ProductoServiceImpl implements ProductoService {
 
     @Autowired
     private ProductoRepository productoRepository;
+
+    @Autowired
+    private ProductoMapper productoMapper;
 
     @Autowired
     private RedisTemplate<String, Object> redisTemplate;
@@ -188,19 +192,17 @@ public class ProductoServiceImpl implements ProductoService {
             List<ProductoEntity> entities = productoRepository.findAll();
 
             if (entities != null && !entities.isEmpty()) {
-                List<ProductoDTO> productos = new ArrayList<>();
-                for (ProductoEntity entity : entities) {
-                    ProductoDTO dto = ProductoDTO.builder()
-                            .idProducto(entity.getIdProducto())
-                            .producto(entity.getProducto())
-                            .idServicio(entity.getIdServicio())
-                            .servicio(entity.getServicio())
-                            .idCatTipoServicio(entity.getIdCatTipoServicio())
-                            .tipoFront(entity.getTipoFront())
-                            .legend(entity.getLegend())
-                            .build();
-                    productos.add(dto);
-                }
+                List<ProductoDTO> productos = productoMapper != null
+                        ? productoMapper.toDtoList(entities)
+                        : entities.stream().map(e -> ProductoDTO.builder()
+                                .idProducto(e.getIdProducto())
+                                .producto(e.getProducto())
+                                .idServicio(e.getIdServicio())
+                                .servicio(e.getServicio())
+                                .idCatTipoServicio(e.getIdCatTipoServicio())
+                                .tipoFront(e.getTipoFront())
+                                .legend(e.getLegend())
+                                .build()).toList();
 
                 log.info("Productos obtenidos correctamente desde POSTGRESQL. Total: {}", productos.size());
                 return ProductoListResponse.builder()
@@ -241,23 +243,30 @@ public class ProductoServiceImpl implements ProductoService {
 
     private void guardarEnPostgreSQL(List<ProductoDTO> listaProductos) {
         try {
-            List<ProductoEntity> entities = new ArrayList<>();
-            LocalDateTime ahora = LocalDateTime.now();
+            List<ProductoDTO> validos = listaProductos.stream()
+                    .filter(dto -> dto.getIdProducto() != null)
+                    .peek(dto -> {
+                        if (dto.getProducto() == null) dto.setProducto("");
+                        if (dto.getIdServicio() == null) dto.setIdServicio(0);
+                        if (dto.getServicio() == null) dto.setServicio("");
+                    })
+                    .toList();
 
-            for (ProductoDTO dto : listaProductos) {
-                if (dto.getIdProducto() != null) {
-                    ProductoEntity entity = ProductoEntity.builder()
-                            .idProducto(dto.getIdProducto())
-                            .producto(dto.getProducto() != null ? dto.getProducto() : "")
-                            .idServicio(dto.getIdServicio() != null ? dto.getIdServicio() : 0)
-                            .servicio(dto.getServicio() != null ? dto.getServicio() : "")
-                            .idCatTipoServicio(dto.getIdCatTipoServicio())
-                            .tipoFront(dto.getTipoFront())
-                            .legend(dto.getLegend())
-                            .fechaActualizacion(ahora)
-                            .build();
-                    entities.add(entity);
-                }
+            List<ProductoEntity> entities;
+            if (productoMapper != null) {
+                entities = productoMapper.toEntityList(validos);
+            } else {
+                LocalDateTime ahora = LocalDateTime.now();
+                entities = validos.stream().map(dto -> ProductoEntity.builder()
+                        .idProducto(dto.getIdProducto())
+                        .producto(dto.getProducto())
+                        .idServicio(dto.getIdServicio())
+                        .servicio(dto.getServicio())
+                        .idCatTipoServicio(dto.getIdCatTipoServicio())
+                        .tipoFront(dto.getTipoFront())
+                        .legend(dto.getLegend())
+                        .fechaActualizacion(ahora)
+                        .build()).toList();
             }
 
             if (!entities.isEmpty()) {
