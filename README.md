@@ -10,6 +10,8 @@ El sistema cuenta con una arquitectura de alta disponibilidad y tolerancia a fal
 
 Para un análisis detallado y guías paso a paso, consulta los siguientes documentos:
 
+* **[Integración de clientes persona física](documentacion/integracion_clientes.md)**  
+  * *Resumen*: Describe el onboarding, validaciones, persistencia, relaciones, endpoints, autenticación JWT y pruebas.
 * **[Manual Técnico: Integración Endpoint `getProductList`](documentacion/manual_tecnico_getProductList.md)**  
   * *Resumen*: Documenta la arquitectura técnica, configuración de Spring Cloud OpenFeign, parseo seguro de XML DOM a JSON, manejo dinámico del Bearer Token y contratos de endpoints.
 * **[Manual de Evidencia: Almacenamiento Redis y PostgreSQL](documentacion/manual_evidencia_almacenamiento_redis_postgres.md)**  
