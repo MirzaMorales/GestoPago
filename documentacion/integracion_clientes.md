@@ -161,4 +161,42 @@ SELECT u.id, u.correo, u.activo, u.password
 FROM usuarios u;
 ```
 
-Después de la baja, verificar que cliente y usuario estén inactivos, sus cuentas activas hayan pasado a `INACTIVA`, el token previo sea rechazado y el hash persistido no coincida con la contraseña original. No se incluyen capturas de una ejecución contra una base real; deben agregarse como evidencia si la entrega académica las solicita.
+Después de la baja, verificar que cliente y usuario estén inactivos, sus cuentas activas hayan pasado a `INACTIVA`, el token previo sea rechazado y el hash persistido no coincida con la contraseña original.
+
+### Capturas recibidas
+
+Las imágenes siguientes se adjuntaron como evidencia de una ejecución. Se guardaron copias en esta carpeta y se ocultaron valores personales, contraseñas y tokens antes de incorporarlas.
+
+**E01 — Inicio de la aplicación.** Muestra los comandos para configurar `APP_JWT_SECRET` y ejecutar `bootRun`, además del inicio del banner de Spring Boot. La captura corresponde al arranque en curso; por sí sola no prueba que la aplicación haya terminado de iniciar.
+
+![E01: Inicio de bootRun](./imagenes/onboarding_e01_inicio.png)
+
+**E02 — Alta de cliente.** Swagger muestra `POST /clientes`, la URL ejecutada y el código HTTP `201`. Se ocultaron el cuerpo de solicitud, el comando cURL y el cuerpo de respuesta para proteger los datos personales.
+
+![E02: Alta de cliente con respuesta 201](./imagenes/onboarding_e02_alta_cliente.png)
+
+**E03 — Persistencia en PostgreSQL.** Muestra las consultas y resultados de cliente, cuenta y usuario. Se ocultaron CURP, RFC, correo, número de cuenta y hash de contraseña; permanecen visibles el saldo inicial `0.00`, estatus y banderas de actividad.
+
+![E03: Consultas de verificación en PostgreSQL](./imagenes/onboarding_e03_consultas_bd.png)
+
+**E04 — Inicio de sesión.** Swagger muestra `POST /auth/login` con respuesta `200`. Se ocultaron las credenciales de solicitud, el cURL y el JWT de respuesta.
+
+![E04: Login exitoso con respuesta 200](./imagenes/onboarding_e04_login.png)
+
+**E05 — Consulta de cliente por ID con JWT.** Postman muestra `GET /clientes/1`, autenticación Bearer configurada y respuesta `200 OK`. Se ocultó el cuerpo para no divulgar la información personal del cliente; el token ya aparece enmascarado en Postman.
+
+![E05: Consulta autenticada de cliente por ID](./imagenes/onboarding_e05_cliente_por_id.png)
+
+**E06 — Consulta de clientes activos con JWT.** Postman muestra `GET /clientes?activos=true`, autenticación Bearer y respuesta `200 OK`. Se ocultó el cuerpo de respuesta por contener información personal y se conservó visible el token enmascarado.
+
+![E06: Consulta autenticada de clientes activos](./imagenes/onboarding_e06_clientes_activos.png)
+
+**E07 — Consulta de cuenta con JWT.** Postman muestra una consulta `GET /cuentas/{numeroCuenta}` y el cuerpo JSON con saldo `0.00` y estatus `ACTIVA`. Se ocultó el número de cuenta tanto en la URL como en el cuerpo; el token aparece enmascarado. El código HTTP queda recortado en la captura.
+
+![E07: Consulta autenticada de cuenta](./imagenes/onboarding_e07_cuenta.png)
+
+**E08 — Consulta de saldo con JWT.** Postman muestra `GET /cuentas/{numeroCuenta}/saldo` y el saldo `0.00` con estatus `ACTIVA`. Se ocultó el número de cuenta y el token aparece enmascarado. El código HTTP queda recortado en la captura.
+
+![E08: Consulta autenticada de saldo](./imagenes/onboarding_e08_saldo.png)
+
+Estas capturas documentan el login y las consultas protegidas. Aún falta agregar evidencia de rechazo de datos inválidos, baja lógica y su efecto en cliente/usuario/cuenta, rechazo del token después de la baja y salida de `.\gradlew.bat test`.

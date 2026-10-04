@@ -26,10 +26,7 @@ import java.util.Map;
 @Configuration
 @EnableTransactionManagement
 @EnableJpaRepositories(
-        basePackages = {
-                "com.proyecto.servicios.repositorys.sf",
-                "com.proyecto.servicios.repositorys.gestopago"
-        },
+        basePackages = "com.proyecto.servicios.repositorys",
         transactionManagerRef = "sfTransactionManager",
         entityManagerFactoryRef = "sfEntityManagerFactory"
 )
@@ -65,10 +62,7 @@ public class ConfigDB {
         LocalContainerEntityManagerFactoryBean em= new LocalContainerEntityManagerFactoryBean();
         try{
           em.setDataSource(sfDatasource());
-          em.setPackagesToScan(
-                  "com.proyecto.servicios.entity.sf",
-                  "com.proyecto.servicios.entity.gestopago"
-          );
+          em.setPackagesToScan("com.proyecto.servicios.entity");
           em.setPersistenceUnitName("sfDatasource");
             HibernateJpaVendorAdapter vendorAdapter = new HibernateJpaVendorAdapter();
             em.setJpaVendorAdapter(vendorAdapter);
