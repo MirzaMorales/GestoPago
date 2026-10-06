@@ -18,21 +18,21 @@ public class ActualizaClienteRequest {
 
     @NotBlank(message = "El nombre es obligatorio")
     @Size(min = 2, max = 50, message = "El nombre debe tener entre 2 y 50 caracteres")
-    @Pattern(regexp = "^[a-zA-ZáéíóúÁÉÍÓÚñÑ\\s]+$", message = "El nombre solo puede contener letras y espacios")
+    @Pattern(regexp = "^[\\p{L}\\p{M}\\s.'’\\-]+$", message = "El nombre contiene caracteres inválidos")
     private String nombre;
 
     @Size(max = 50, message = "El segundo nombre no puede exceder 50 caracteres")
-    @Pattern(regexp = "^[a-zA-ZáéíóúÁÉÍÓÚñÑ\\s]*$", message = "El segundo nombre solo puede contener letras y espacios")
+    @Pattern(regexp = "^[\\p{L}\\p{M}\\s.'’\\-]*$", message = "El segundo nombre contiene caracteres inválidos")
     private String segundoNombre;
 
     @NotBlank(message = "El apellido paterno es obligatorio")
     @Size(min = 2, max = 50, message = "El apellido paterno debe tener entre 2 y 50 caracteres")
-    @Pattern(regexp = "^[a-zA-ZáéíóúÁÉÍÓÚñÑ\\s]+$", message = "El apellido paterno solo puede contener letras y espacios")
+    @Pattern(regexp = "^[\\p{L}\\p{M}\\s.'’\\-]+$", message = "El apellido paterno contiene caracteres inválidos")
     private String apellidoPaterno;
 
     @NotBlank(message = "El apellido materno es obligatorio")
     @Size(min = 2, max = 50, message = "El apellido materno debe tener entre 2 y 50 caracteres")
-    @Pattern(regexp = "^[a-zA-ZáéíóúÁÉÍÓÚñÑ\\s]+$", message = "El apellido materno solo puede contener letras y espacios")
+    @Pattern(regexp = "^[\\p{L}\\p{M}\\s.'’\\-]+$", message = "El apellido materno contiene caracteres inválidos")
     private String apellidoMaterno;
 
     @NotNull(message = "La fecha de nacimiento es obligatoria")
@@ -72,6 +72,7 @@ public class ActualizaClienteRequest {
 
     @NotNull(message = "El ingreso mensual es obligatorio")
     @DecimalMin(value = "0.01", message = "El ingreso mensual debe ser mayor a cero")
+    @Digits(integer = 13, fraction = 2, message = "El ingreso mensual admite hasta 13 enteros y 2 decimales")
     private BigDecimal ingresoMensual;
 
     @Valid

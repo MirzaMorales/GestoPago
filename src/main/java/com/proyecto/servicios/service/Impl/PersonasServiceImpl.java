@@ -1,6 +1,7 @@
 package com.proyecto.servicios.service.Impl;
 
 import com.proyecto.servicios.entity.sf.Personas;
+import com.proyecto.servicios.exception.PersonaNoEncontradaException;
 import com.proyecto.servicios.model.EliminaPersonaRequest;
 import com.proyecto.servicios.model.GenericResponse;
 import com.proyecto.servicios.model.PersonaResponse;
@@ -27,7 +28,7 @@ public class PersonasServiceImpl implements PersonaService {
      persona.setApellidoMaterno(personasRequest.getApellidoMaterno());
      persona.setApellidoP(personasRequest.getApellidoP());
      personasRepository.save(persona);
-     person.setCodigo(1);
+     person.setCodigo(0);
      person.setMensaje("Exito");
      BeanUtils.copyProperties(persona,person);
 
@@ -45,9 +46,8 @@ public class PersonasServiceImpl implements PersonaService {
             genericResponse.setCodigo(0);
             genericResponse.setMensaje("La persona ha sido eliminada correctamente");
 
-        }else{
-            genericResponse.setCodigo(1);
-            genericResponse.setMensaje("La persona no existe ");
+        } else {
+            throw new PersonaNoEncontradaException("No se encontró la persona con el nombre indicado");
         }
        return genericResponse;
 
@@ -65,9 +65,8 @@ public class PersonasServiceImpl implements PersonaService {
             genericResponse.setCodigo(0);
             genericResponse.setMensaje("la persona ha sido actualizada correctamente");
 
-        }else{
-            genericResponse.setCodigo(1);
-            genericResponse.setMensaje("La persona no existe ");
+        } else {
+            throw new PersonaNoEncontradaException("No se encontró la persona con el nombre indicado");
         }
         return genericResponse;
     }

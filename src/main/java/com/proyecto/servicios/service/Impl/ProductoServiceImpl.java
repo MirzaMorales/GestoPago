@@ -68,7 +68,7 @@ public class ProductoServiceImpl implements ProductoService {
             log.error("No se encontro un token activo para idDistribuidor={} y codigoDispositivo={}",
                     idDistribuidor, codigoDispositivo);
             return ProductoListResponse.builder()
-                    .codigo(1)
+                    .codigo(2)
                     .mensaje("No se pudo obtener un token activo de GestoPago")
                     .productos(new ArrayList<>())
                     .build();
@@ -148,7 +148,7 @@ public class ProductoServiceImpl implements ProductoService {
             log.error("Error al obtener la lista de productos de GestoPago: {}", e.getMessage(), e);
             return ProductoListResponse.builder()
                     .codigo(1)
-                    .mensaje("Error al procesar la lista de productos: " + e.getMessage())
+                    .mensaje("No se pudo obtener o procesar la respuesta del servicio de productos")
                     .productos(new ArrayList<>())
                     .build();
         }

@@ -148,9 +148,13 @@ La verificación de CURP/RFC comprueba el patrón indicado; no consulta una fuen
 | GET | `/usuarios/{id}` | Consulta usuario sin exponer el hash de contraseña. |
 | PUT | `/usuarios/{id}/password` | Cambia contraseña verificando la actual y aplicando la política de complejidad. |
 
-Los errores de validación se devuelven como `400`, conflictos de integridad/unicidad como `409`, recursos faltantes como `404`, usuario inactivo como `403` y credenciales inválidas como `401`.
+Las respuestas de error de la API comparten el formato `timestamp`, `status`, `error`, `mensaje` y, para errores de campos/parámetros, `detalles`. Las solicitudes con DTO inválido, JSON mal formado, tipo de parámetro incompatible o fechas incoherentes devuelven `400`; conflictos de integridad/unicidad `409`; recursos inexistentes `404`; usuario inactivo o acceso denegado `403`; credenciales inválidas o falta de autenticación `401`. Un tipo de contenido no soportado devuelve `415`, un formato de respuesta no aceptable `406` y un método HTTP no permitido `405`. Los fallos al consultar el servicio externo de productos devuelven `502`; la falta de un token de servicio devuelve `503`. Los errores inesperados responden `500` con un mensaje genérico, sin exponer detalles internos.
+
+Los IDs de rutas deben ser positivos; CURP, RFC, correo y número de cuenta se validan antes de consultar; los números de cuenta deben tener 16 dígitos. En `GET /clientes`, `fechaInicio` y `fechaFin` deben enviarse juntas y en orden cronológico; en `/clientes/buscar` pueden usarse individualmente, pero si se envían ambas `fechaInicio` no puede ser posterior a `fechaFin`.
 
 ## Pruebas y evidencia
+
+Para instrucciones paso a paso en Postman, con ejemplos de body, casos de éxito y error para cada endpoint y códigos HTTP esperados, consulta la [Guía de pruebas de endpoints con Postman](./pruebas_endpoints_postman.md).
 
 Ejecutar desde la raíz del repositorio:
 
