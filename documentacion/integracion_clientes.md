@@ -68,9 +68,23 @@ erDiagram
 
 ## Persistencia y reglas de esquema
 
-Las migraciones `V3__create_onboarding_tables.sql` y `V4__enforce_onboarding_constraints.sql` crean y refuerzan el esquema:
+Las migraciones `V3__create_onboarding_tables.sql` y `V4__enforce_onboarding_constraints.sql` crean y refuerzan el esquema. Los tipos se eligieron para representar los datos sin perder información y corresponden a los tipos Java usados por las entidades:
 
-- `BIGSERIAL` para claves sustitutas; `VARCHAR` acotado para identificadores y datos de longitud limitada; `NUMERIC(15,2)` para dinero; `DATE` para nacimiento; `TIMESTAMP WITH TIME ZONE` para marcas de tiempo.
+| Tipo/atributos | Justificación y consideraciones |
+|---|---|
+| `BIGSERIAL` / `BIGINT` para IDs y llaves foráneas | Proporcionan un rango amplio para claves sustitutas y se mapean a `Long` en Java. `BIGSERIAL` es adecuado para el esquema actual; cambiarlo a identidad estándar sería una decisión de estilo, no una mejora funcional necesaria. |
+| `VARCHAR` para CURP, RFC, teléfonos, código postal y número de cuenta | Son identificadores, no cantidades para operar: guardarlos como texto conserva ceros iniciales y evita operaciones numéricas inválidas. Las longitudes y restricciones actuales reflejan los formatos de CURP/RFC y los requisitos mexicanos de diez dígitos telefónicos y cinco para el código postal. |
+| `VARCHAR` para nombres, domicilio, ocupación, empresa y otros textos | Es apropiado para texto de longitud limitada. Los máximos actuales son reglas del dominio y deben revisarse si cambian los requisitos para evitar rechazar datos válidos. |
+| `DATE` para fecha de nacimiento | Solo se necesita la fecha de calendario, no una hora ni una zona horaria; se corresponde con `LocalDate`. |
+| `NUMERIC(15,2)` para ingreso mensual y saldo | Representa cantidades decimales exactas, apropiadas para dinero y compatibles con `BigDecimal`. Admite 13 dígitos enteros y dos decimales; confirmar con el negocio que ese máximo cubre los importes esperados. |
+| `TIMESTAMP WITH TIME ZONE` para fechas de creación, actualización y apertura | Representa un instante y se corresponde con `OffsetDateTime`, adecuado para auditoría. PostgreSQL normaliza estos valores a un instante y no conserva el offset original ingresado. |
+| `VARCHAR` para estatus de cuenta, más `CHECK` y `enum` Java | Mantiene los valores permitidos explícitos y evita acoplar el esquema a un tipo enum nativo de PostgreSQL, que requiere más coordinación para evolucionar. |
+| `BOOLEAN` para indicadores de actividad | Representa directamente los estados activo/inactivo y se mapea a `Boolean` en Java. |
+
+El correo actualmente tiene un máximo de 100 caracteres en la base de datos, las entidades y la validación de entrada. Para aceptar direcciones largas de forma interoperable, conviene evaluar ampliar ese límite a 254 de manera coordinada en los tres niveles. Asimismo, sexo y estado civil se guardan como texto sin una restricción de valores en la base; si el dominio requiere catálogos cerrados, deben validarse en la aplicación y/o restringirse con reglas de esquema. Para CURP y RFC hay validación de formato en la aplicación, pero no verificación contra una fuente oficial.
+
+Otros tipos y restricciones importantes:
+
 - CURP, RFC, correo del cliente, correo del usuario y número de cuenta son únicos. `clientes.domicilio_id` también es único para asegurar la relación 1:1; un cliente puede tener varias cuentas y como máximo un usuario.
 - Las llaves foráneas conectan las tablas. Las relaciones con cuentas y domicilios impiden borrados físicos que rompan la asociación; la baja funcional es lógica.
 - Ingreso mensual debe ser mayor que cero; el saldo no puede ser negativo; el estatus de cuenta está restringido a los valores definidos.
