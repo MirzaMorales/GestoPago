@@ -379,7 +379,7 @@ Todas las rutas requieren JWT de la aplicación, aunque el parámetro `Authoriza
 - El endpoint requiere el JWT de la aplicación para superar Spring Security. Sin Authorization → `401`.
 - **Limitación de implementación que afecta esta prueba:** el mismo encabezado `Authorization` se reenvía al proveedor como su token. Por tanto, no se puede omitir para activar el fallback al token guardado (Spring Security lo rechaza primero). Prueba `GET {{baseUrl}}/getProductList` con Bearer `{{token}}`; solo se espera `200` si ese JWT también es válido para el proveedor. En caso contrario se espera `502`. Para probar la consulta normal usando el token de servicio almacenado, usa `GET /productos`.
 - Caso de error del proveedor: el proveedor no disponible o una respuesta inválida → `502`; token de servicio ausente → `503`.
-- Un encabezado `Authorization` mayor de 4096 caracteres debe responder `400`.
+- Un encabezado `Authorization` mayor de 4096 caracteres con un JWT inválido responde `401`: Spring Security lo rechaza antes de llegar al controlador.
 
 ### 8.3 `GET /productos/almacenados` — consultar caché o persistencia local
 
