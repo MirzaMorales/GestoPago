@@ -11,7 +11,7 @@ services:
         sync: false
       - key: DB_PASSWORD
         sync: false
-      - key: REDIS_URL
+      - key: SPRING_DATA_REDIS_URL
         fromService:
           type: keyvalue
           name: gestopago-redis
