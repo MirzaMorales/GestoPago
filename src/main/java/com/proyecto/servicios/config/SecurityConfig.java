@@ -41,7 +41,7 @@ public class SecurityConfig {
                                 errorResponseWriter.write(response, HttpStatus.FORBIDDEN,
                                         "No tiene permisos para acceder a este recurso")))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/auth/**").permitAll()
+                        .requestMatchers("/auth/**", "/actuator/health/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/clientes").permitAll()
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-resources/**", "/webjars/**").permitAll()
                         .anyRequest().authenticated()

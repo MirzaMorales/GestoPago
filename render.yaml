@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: gestopago
+    runtime: docker
+    plan: free
+    healthCheckPath: /actuator/health
+    envVars:
+      - key: DB_URL
+        sync: false
+      - key: DB_USER
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: gestopago-redis
+          property: connectionString
+      - key: APP_JWT_SECRET
+        generateValue: true
+      - key: GESTOPAGO_AUTH_PASSWORD
+        sync: false
+
+  - type: keyvalue
+    name: gestopago-redis
+    plan: free
+    ipAllowList: []
