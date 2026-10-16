@@ -1,5 +1,6 @@
 package com.proyecto.servicios.service.Impl;
 
+import com.proyecto.servicios.entity.Rol;
 import com.proyecto.servicios.entity.Usuario;
 import com.proyecto.servicios.exception.CredencialesInvalidasException;
 import com.proyecto.servicios.exception.UsuarioInactivoException;
@@ -37,7 +38,8 @@ public class AuthServiceImpl implements AuthService {
             throw new UsuarioInactivoException("El usuario se encuentra inactivo en el sistema");
         }
 
-        if (usuario.getCliente() == null || !Boolean.TRUE.equals(usuario.getCliente().getActivo())) {
+        if (usuario.getRol() != Rol.ADMIN
+                && (usuario.getCliente() == null || !Boolean.TRUE.equals(usuario.getCliente().getActivo()))) {
             throw new UsuarioInactivoException("El cliente asociado al usuario se encuentra inactivo");
         }
 

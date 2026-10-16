@@ -1,7 +1,7 @@
 package com.proyecto.servicios.exception;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.proyecto.servicios.model.response.ErrorResponse;
+import com.proyecto.servicios.model.GenericResponse;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -21,15 +21,14 @@ public class ApiErrorResponseWriter {
         this.objectMapper = objectMapper;
     }
 
-    public ErrorResponse create(HttpStatus status, String mensaje) {
+    public GenericResponse<Void> create(HttpStatus status, String mensaje) {
         return create(status, mensaje, null);
     }
 
-    public ErrorResponse create(HttpStatus status, String mensaje, Map<String, String> detalles) {
-        return ErrorResponse.builder()
+    public GenericResponse<Void> create(HttpStatus status, String mensaje, Map<String, String> detalles) {
+        return GenericResponse.<Void>builder()
                 .timestamp(LocalDateTime.now())
                 .status(status.value())
-                .error(status.getReasonPhrase())
                 .mensaje(mensaje)
                 .detalles(detalles)
                 .build();

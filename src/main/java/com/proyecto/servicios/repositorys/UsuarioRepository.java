@@ -13,7 +13,7 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
 
     Optional<Usuario> findByCorreo(String correo);
 
-    @Query("SELECT u FROM Usuario u JOIN FETCH u.cliente c WHERE u.correo = :correo AND u.activo = true AND c.activo = true")
+    @Query("SELECT u FROM Usuario u LEFT JOIN FETCH u.cliente c WHERE u.correo = :correo AND u.activo = true AND (c IS NULL OR c.activo = true)")
     Optional<Usuario> findActiveByCorreo(@Param("correo") String correo);
 
     boolean existsByCorreo(String correo);
