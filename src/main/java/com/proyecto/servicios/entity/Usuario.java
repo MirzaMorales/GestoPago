@@ -18,8 +18,8 @@ public class Usuario {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @OneToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "cliente_id", nullable = false, unique = true)
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "cliente_id", unique = true)
     private Cliente cliente;
 
     @Column(nullable = false, unique = true, length = 100)
@@ -27,6 +27,10 @@ public class Usuario {
 
     @Column(nullable = false, length = 255)
     private String password;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 10)
+    private Rol rol;
 
     @Column(nullable = false)
     private Boolean activo;
@@ -41,6 +45,9 @@ public class Usuario {
     protected void onCreate() {
         if (this.activo == null) {
             this.activo = true;
+        }
+        if (this.rol == null) {
+            this.rol = Rol.CLIENTE;
         }
         this.fechaCreacion = OffsetDateTime.now();
         this.fechaActualizacion = OffsetDateTime.now();

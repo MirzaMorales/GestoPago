@@ -7,14 +7,18 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import com.proyecto.servicios.entity.Rol;
+import com.proyecto.servicios.entity.Usuario;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
 
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
@@ -32,10 +36,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         if (StringUtils.hasText(jwt) && tokenProvider.validateToken(jwt)) {
             String correo = tokenProvider.getCorreoFromToken(jwt);
-            if (usuarioRepository.findActiveByCorreo(correo).isPresent()) {
-                // Autenticación básica sin roles (como fue solicitado)
+            Optional<Usuario> usuario = usuarioRepository.findActiveByCorreo(correo);
+            if (usuario.isPresent()) {
+                Rol rol = usuario.get().getRol() != null ? usuario.get().getRol() : Rol.CLIENTE;
                 UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                        correo, null, Collections.emptyList());
+                        correo, null, List.of(new SimpleGrantedAuthority("ROLE_" + rol.name())));
                 authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
                 SecurityContextHolder.getContext().setAuthentication(authentication);

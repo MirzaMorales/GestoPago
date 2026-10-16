@@ -14,6 +14,7 @@ class PasswordValidationTest {
         try (var factory = Validation.buildDefaultValidatorFactory()) {
             Validator validator = factory.getValidator();
             CambiaPasswordRequest request = CambiaPasswordRequest.builder()
+                    .id(1L)
                     .passwordActual("CurrentPass1!")
                     .nuevaPassword("Strong+Pass1")
                     .build();
@@ -27,6 +28,7 @@ class PasswordValidationTest {
         try (var factory = Validation.buildDefaultValidatorFactory()) {
             Validator validator = factory.getValidator();
             CambiaPasswordRequest request = CambiaPasswordRequest.builder()
+                    .id(1L)
                     .passwordActual("CurrentPass1!")
                     .nuevaPassword("StrongPass1")
                     .build();
