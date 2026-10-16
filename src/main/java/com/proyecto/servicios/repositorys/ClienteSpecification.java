@@ -17,6 +17,7 @@ import java.util.List;
 public class ClienteSpecification {
 
     public static Specification<Cliente> buscarConFiltros(
+            Long id,
             String curp,
             String rfc,
             String correo,
@@ -29,6 +30,10 @@ public class ClienteSpecification {
     ) {
         return (root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
+
+            if (id != null) {
+                predicates.add(criteriaBuilder.equal(root.get("id"), id));
+            }
 
             if (curp != null && !curp.isBlank()) {
                 predicates.add(criteriaBuilder.equal(
