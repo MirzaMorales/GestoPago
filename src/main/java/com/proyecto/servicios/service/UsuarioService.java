@@ -7,7 +7,7 @@ public interface UsuarioService {
 
     UsuarioResponse obtenerUsuarioPorId(Long id);
 
-    void cambiarPassword(Long id, CambiaPasswordRequest request);
+    void cambiarPassword(CambiaPasswordRequest request);
 
     void darDeBajaLogicaUsuario(Long id);
 }

@@ -131,26 +131,22 @@ La verificación de CURP/RFC comprueba el patrón indicado; no consulta una fuen
 
 | Método | Ruta | Descripción |
 |---|---|---|
-| POST | `/clientes` | Alta transaccional de cliente, domicilio, cuenta y usuario. |
-| GET | `/clientes` | Lista clientes; acepta `activos=true` o `fechaInicio` y `fechaFin` en formato ISO `yyyy-MM-dd`. |
-| GET | `/clientes/{id}` | Consulta por ID. |
-| GET | `/clientes/curp/{curp}` | Consulta por CURP. |
-| GET | `/clientes/rfc/{rfc}` | Consulta por RFC. |
-| GET | `/clientes/correo/{correo}` | Consulta por correo. |
-| GET | `/clientes/cuenta/{numeroCuenta}` | Consulta por cuenta asociada. |
-| GET | `/clientes/buscar` | Consulta combinada por criterios opcionales. |
-| PUT | `/clientes/{id}` | Actualiza información editable; CURP y RFC no forman parte del request. |
-| DELETE | `/clientes/{id}` | Baja lógica; desactiva cliente, usuario y cuentas activas. |
-| GET | `/cuentas/{numeroCuenta}` | Consulta una cuenta. |
-| GET | `/cuentas/{numeroCuenta}/saldo` | Consulta su saldo y estatus. |
-| GET | `/cuentas/activas` | Consulta cuentas activas de clientes activos. |
+| POST | `/clientes` | Alta transaccional de cliente, domicilio, cuenta y usuario. Público. |
+| POST | `/clientes/buscar` | Único endpoint de consulta. Body `BuscaClienteRequest` con filtros opcionales y combinables (`id`, `curp`, `rfc`, `correo`, `nombre`, `apellido`, `activo`, `fechaInicio`, `fechaFin`, `numeroCuenta`) y banderas `incluirDomicilio`, `incluirCuentas`, `incluirUsuario` (por defecto `true`). ADMIN o el propio cliente por `id`. |
+| PUT | `/clientes` | Actualiza información editable; el `id` va en el body. CURP y RFC no forman parte del request. |
+| DELETE | `/clientes` | Solo ADMIN. Baja lógica (`{ "id": ... }`); desactiva cliente, usuario y cuentas activas. |
+| POST | `/cuentas/buscar` | Único endpoint de consulta de cuentas; body con `numeroCuenta` y/o `activas`. ADMIN, o el dueño indicando `numeroCuenta`. |
+| POST | `/cuentas/saldo` | Consulta saldo y estatus (`{ "numeroCuenta": ... }`). |
 | POST | `/auth/login` | Valida credenciales y devuelve JWT. |
-| GET | `/usuarios/{id}` | Consulta usuario sin exponer el hash de contraseña. |
-| PUT | `/usuarios/{id}/password` | Cambia contraseña verificando la actual y aplicando la política de complejidad. |
+| POST | `/usuarios/consultar` | Consulta usuario (`{ "id": ... }`) sin exponer el hash de contraseña. |
+| PUT | `/usuarios/password` | Cambia contraseña (`id`, `passwordActual`, `nuevaPassword`) verificando la actual y aplicando la política de complejidad. |
+| DELETE | `/usuarios` | Solo ADMIN. Baja lógica de usuario (`{ "id": ... }`). |
 
-Las respuestas de error de la API comparten el formato `timestamp`, `status`, `error`, `mensaje` y, para errores de campos/parámetros, `detalles`. Las solicitudes con DTO inválido, JSON mal formado, tipo de parámetro incompatible o fechas incoherentes devuelven `400`; conflictos de integridad/unicidad `409`; recursos inexistentes `404`; usuario inactivo o acceso denegado `403`; credenciales inválidas o falta de autenticación `401`. Un tipo de contenido no soportado devuelve `415`, un formato de respuesta no aceptable `406` y un método HTTP no permitido `405`. Los fallos al consultar el servicio externo de productos devuelven `502`; la falta de un token de servicio devuelve `503`. Los errores inesperados responden `500` con un mensaje genérico, sin exponer detalles internos.
+Restricciones de diseño: ningún endpoint usa `@PathVariable` ni `@RequestParam`; identificadores y criterios viajan en el body (`@RequestBody` + `@Valid`) para no exponerlos en la URL. Los controladores solo reciben Request DTO y devuelven Response DTO (nunca entidades JPA), sin `try-catch` ni validaciones repetitivas: todo se centraliza en `ValidadorCampos` y `GlobalExceptionHandler` (`@RestControllerAdvice`).
 
-Los IDs de rutas deben ser positivos; CURP, RFC, correo y número de cuenta se validan antes de consultar; los números de cuenta deben tener 16 dígitos. En `GET /clientes`, `fechaInicio` y `fechaFin` deben enviarse juntas y en orden cronológico; en `/clientes/buscar` pueden usarse individualmente, pero si se envían ambas `fechaInicio` no puede ser posterior a `fechaFin`.
+Todas las respuestas, exitosas o de error, comparten la estructura `GenericResponse`: `timestamp`, `status`, `mensaje` y, según el caso, `datos` (éxito) o `detalles` (mensaje por campo en errores de validación). Las solicitudes con DTO inválido, JSON mal formado o fechas incoherentes devuelven `400`; conflictos de integridad/unicidad `409`; recursos inexistentes `404`; usuario inactivo o acceso denegado `403`; credenciales inválidas o falta de autenticación `401`. Un tipo de contenido no soportado devuelve `415`, un formato de respuesta no aceptable `406` y un método HTTP no permitido `405`. Los fallos al consultar el servicio externo de productos devuelven `502`; la falta de un token de servicio devuelve `503`. Los errores inesperados responden `500` con un mensaje genérico, sin exponer trazas, SQL ni detalles internos.
+
+Los IDs deben ser positivos; CURP, RFC, correo y número de cuenta se validan antes de consultar; los números de cuenta deben tener 16 dígitos. En `/clientes/buscar`, `fechaInicio` y `fechaFin` pueden usarse individualmente, pero si se envían ambas `fechaInicio` no puede ser posterior a `fechaFin`.
 
 ## Pruebas y evidencia
 
@@ -205,7 +201,7 @@ Las imágenes siguientes se adjuntaron como evidencia de una ejecución. Se guar
 
 ![E05: Consulta autenticada de cliente por ID](./imagenes/onboarding_e05_cliente_por_id.png)
 
-**E06 — Consulta de clientes activos con JWT.** Postman muestra `GET /clientes?activos=true`, autenticación Bearer y respuesta `200 OK`. Se ocultó el cuerpo de respuesta por contener información personal y se conservó visible el token enmascarado.
+**E06 — Consulta de clientes activos con JWT.** Postman muestra `GET /clientes?activo=true`, autenticación Bearer y respuesta `200 OK`. Se ocultó el cuerpo de respuesta por contener información personal y se conservó visible el token enmascarado.
 
 ![E06: Consulta autenticada de clientes activos](./imagenes/onboarding_e06_clientes_activos.png)
 

@@ -25,14 +25,13 @@ Esta guía permite probar manualmente los endpoints REST de GestoPago desde Post
    | `expectedStatus` | `200` *(cámbialo según el caso que se esté probando)* |
    | `correoPrueba` | `prueba.gestopago@example.test` |
    | `passwordPrueba` | *(la contraseña ficticia elegida para el alta)* |
-   | `nombrePersona` | `Postman Persona QA` |
 
    Usa variables de colección o de entorno. No guardes credenciales personales ni secretos productivos en un environment sincronizado.
 
 ## 2. Convenciones de la colección
 
 - Selecciona el environment **GestoPago local**.
-- Crea carpetas **Preparación**, **Clientes**, **Cuentas**, **Autenticación y usuarios**, **Personas heredadas** y **Productos**.
+- Crea carpetas **Preparación**, **Clientes**, **Cuentas**, **Autenticación y usuarios** y **Productos**.
 - Para las rutas protegidas, en la pestaña **Authorization** selecciona **Bearer Token** y usa `{{token}}`. No escribas `Bearer` en el valor: Postman lo agrega.
 - Para requests JSON, elige **Body > raw > JSON** y verifica el encabezado `Content-Type: application/json`.
 - En **Tests** puedes agregar estas comprobaciones básicas. Ajusta `expectedStatus` por request:
@@ -103,10 +102,10 @@ Esta guía permite probar manualmente los endpoints REST de GestoPago desde Post
 ### Resultado esperado y variables
 
 - Esperado: `201 Created`.
-- La respuesta contiene el cliente y sus datos asociados; copia `id` a `clienteId`, `usuario.id` a `usuarioId` y `cuentas[0].numeroCuenta` a `numeroCuenta`.
+- La respuesta usa la estructura uniforme `{ timestamp, status, mensaje, datos }`; en `datos` va el cliente y sus datos asociados. Copia `id` a `clienteId`, `usuario.id` a `usuarioId` y `cuentas[0].numeroCuenta` a `numeroCuenta`.
 - La contraseña no debe aparecer como texto ni como hash en la respuesta.
 - Si el registro ya existe: `409 Conflict`.
-- Si un dato incumple formato, es menor de edad o falta un campo: `400 Bad Request`, con `status`, `error`, `mensaje` y normalmente `detalles`.
+- Si un dato incumple formato, es menor de edad o falta un campo: `400 Bad Request`, con `timestamp`, `status`, `mensaje` y normalmente `detalles` (mensaje por campo).
 
 Si la respuesta no incluye alguna relación, consulta las tablas de la base de datos local para obtener el ID/cuenta creados; no inventes esos valores.
 
@@ -114,7 +113,7 @@ Para capturar automáticamente los IDs de la respuesta `201`, agrega este script
 
 ```javascript
 if (pm.response.code === 201) {
-  const cliente = pm.response.json();
+  const cliente = pm.response.json().datos;
   pm.environment.set("clienteId", cliente.id);
   pm.environment.set("usuarioId", cliente.usuario.id);
   pm.environment.set("numeroCuenta", cliente.cuentas[0].numeroCuenta);
@@ -137,63 +136,46 @@ Todas estas rutas requieren `Bearer {{token}}`, excepto `POST /clientes`.
   - Omite `domicilio`, `nombre` o `password` → `400`.
   - Reutiliza correo, CURP o RFC registrados → `409`.
 
-### 4.2 `GET /clientes` — listar clientes
+### 4.2 `POST /clientes/buscar` — búsqueda multicriterio (único endpoint de consulta)
 
-- Authorization: Bearer token.
-- Caso aprobado: `GET {{baseUrl}}/clientes` → `200` y lista JSON. Filtros aprobados:
-  - `GET {{baseUrl}}/clientes?activos=true`
-  - `GET {{baseUrl}}/clientes?fechaInicio=2025-01-01&fechaFin=2026-12-31`
-- Casos de error:
-  - `GET {{baseUrl}}/clientes?fechaInicio=2025-01-01` (falta fecha final) → `400`.
-  - `GET {{baseUrl}}/clientes?fechaInicio=2026-12-31&fechaFin=2025-01-01` → `400`.
-  - `GET {{baseUrl}}/clientes?fechaInicio=no-es-fecha&fechaFin=2026-12-31` → `400`.
-  - `GET {{baseUrl}}/clientes?activos=tal-vez` → `400`.
-  - Sin token o con token inválido → `401`.
+Ningún endpoint usa `@PathVariable` ni `@RequestParam`: todo criterio viaja en el body JSON (`@RequestBody` + `@Valid`).
 
-### 4.3 `GET /clientes/buscar` — búsqueda multicriterio
-
-- Caso aprobado: `GET {{baseUrl}}/clientes/buscar?correo={{correoPrueba}}&activo=true`; también se puede probar con `curp`, `rfc`, `nombre`, `apellido`, `numeroCuenta`, `fechaInicio` y/o `fechaFin`. Los criterios se pueden combinar.
-- `fechaInicio` y `fechaFin` pueden enviarse individualmente en esta búsqueda; si se mandan ambas, inicio debe ser anterior o igual a fin.
-- Casos de error:
-  - `GET {{baseUrl}}/clientes/buscar?curp=INVALIDA` → `400`.
-  - `GET {{baseUrl}}/clientes/buscar?numeroCuenta=123` → `400`.
-  - `GET {{baseUrl}}/clientes/buscar?nombre=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA` (51 caracteres) → `400`.
-  - Fechas invertidas o fecha no ISO → `400`.
-  - Sin token o token inválido → `401`.
-- Una búsqueda válida sin coincidencias responde `200` con `[]`, no `404`.
-
-### 4.4 `GET /clientes/{{clienteId}}` — consultar por ID
-
-- Caso aprobado: usa el ID guardado en `clienteId` → `200` con cliente.
-- Error: usa un ID positivo inexistente, por ejemplo `9223372036854770000` si no existe → `404`; ID `0` o negativo → `400`; sin token → `401`.
-
-### 4.5 `GET /clientes/curp/{{curp}}` — consultar por CURP
-
-- Caso aprobado: `GET {{baseUrl}}/clientes/curp/GODE850101HDFRRN09` → `200`.
-- Error: CURP con forma incorrecta, por ejemplo `ABC` → `400`; CURP válida de formato pero no registrada → `404`; sin token → `401`.
-
-### 4.6 `GET /clientes/rfc/{{rfc}}` — consultar por RFC
-
-- Caso aprobado: `GET {{baseUrl}}/clientes/rfc/GODE850101AB1` → `200`.
-- Error: RFC con forma incorrecta, por ejemplo `ABC` → `400`; RFC válida de formato pero no registrada → `404`; sin token → `401`.
-
-### 4.7 `GET /clientes/correo/{{correo}}` — consultar por correo
-
-- Caso aprobado: `GET {{baseUrl}}/clientes/correo/prueba.gestopago%40example.test` → `200`. Codifica `@` como `%40` al usarlo en este segmento de ruta.
-- Error: texto que no sea correo o correo de más de 100 caracteres → `400`; correo válido sin registro → `404`; sin token → `401`.
-
-### 4.8 `GET /clientes/cuenta/{{numeroCuenta}}` — consultar cliente asociado a cuenta
-
-- Caso aprobado: `GET {{baseUrl}}/clientes/cuenta/{{numeroCuenta}}` → `200`.
-- Error: número que no tenga exactamente 16 dígitos → `400`; número válido no asociado → `404`; sin token → `401`.
-
-### 4.9 `PUT /clientes/{{clienteId}}` — actualizar cliente
-
-- Authorization: Bearer token.
-- Body: es una actualización completa de los campos editables (no es PATCH); omite CURP, RFC y contraseña.
+- Authorization: Bearer token. Body (todos los campos son opcionales y combinables):
 
   ```json
   {
+    "id": 1,
+    "curp": "GODE850101HDFRRN09",
+    "rfc": "GODE850101AB1",
+    "correo": "prueba",
+    "nombre": "Maria",
+    "apellido": "Gomez",
+    "activo": true,
+    "fechaInicio": "2025-01-01",
+    "fechaFin": "2026-12-31",
+    "numeroCuenta": "4001000000000000",
+    "incluirDomicilio": true,
+    "incluirCuentas": true,
+    "incluirUsuario": true
+  }
+  ```
+
+- Caso aprobado: `{ "nombre": "mar", "activo": true }` → `200`; la respuesta trae los clientes en `datos`. `{}` devuelve todos los clientes (solo ADMIN). Las banderas `incluir*` quitan secciones de la respuesta.
+- Un CLIENTE solo puede consultar su propio `id` (`{ "id": {{clienteId}} }`); sin `id` o con un `id` ajeno → `403`.
+- Casos de error:
+  - `{ "curp": "INVALIDA" }`, `{ "numeroCuenta": "123" }` o `nombre` de 51 caracteres → `400` con `detalles` por campo.
+  - `fechaInicio` posterior a `fechaFin` o fecha no ISO → `400`.
+  - `{ "id": 99999 }` inexistente → `404`.
+  - Body vacío o JSON mal formado → `400`. Sin token → `401`.
+
+### 4.3 `PUT /clientes` — actualizar cliente
+
+- Authorization: Bearer token. El `id` del cliente va en el body; ADMIN puede actualizar cualquiera y un CLIENTE solo el suyo.
+- Body: actualización completa de los campos editables (no es PATCH); omite CURP, RFC y contraseña.
+
+  ```json
+  {
+    "id": {{clienteId}},
     "nombre": "Maria-Jose",
     "segundoNombre": "QA Actualizada",
     "apellidoPaterno": "Gomez",
@@ -221,39 +203,36 @@ Todas estas rutas requieren `Bearer {{token}}`, excepto `POST /clientes`.
   }
   ```
 
-- Caso aprobado: `200` con los datos actualizados.
+- Caso aprobado: `200` con los datos actualizados en `datos`.
 - Casos de error:
-  - Omite un campo obligatorio o manda teléfono/código postal inválido → `400`.
+  - Omite `id` u otro campo obligatorio, o manda teléfono/código postal inválido → `400`.
   - Ingreso fuera de límites o fecha de nacimiento de menor → `400`.
   - Usa un correo que pertenezca a otro registro → `409`.
-  - ID positivo inexistente → `404`; ID no positivo → `400`.
+  - `id` positivo inexistente (ADMIN) → `404`; `id` de otro cliente (CLIENTE) → `403`.
   - Sin token → `401`.
 
-### 4.10 `DELETE /clientes/{{clienteId}}` — baja lógica
+### 4.4 `DELETE /clientes` — baja lógica
 
+- Body: `{ "id": {{clienteId}} }`. Solo ADMIN.
 - Haz esta prueba **al final**: la baja desactiva el cliente y usuario y cambia cuentas activas a `INACTIVA`.
-- Caso aprobado: `DELETE {{baseUrl}}/clientes/{{clienteId}}` → `204 No Content`. Verifica luego que el cliente/usuario estén inactivos y que el login y token anterior ya no permitan acceder.
-- Casos de error: ID inexistente → `404`; ID cero/negativo → `400`; sin token → `401`.
-- Ejecutar la baja otra vez para el mismo ID vuelve a responder `204` (la operación es idempotente a nivel de estado).
+- Caso aprobado: `200` con `mensaje` de confirmación. Verifica luego que cliente/usuario estén inactivos y que el login ya no permita acceder (`403`).
+- Casos de error: `id` inexistente → `404`; sin `id` o `id` no positivo → `400`; un CLIENTE → `403`; sin token → `401`.
 
 ## 5. Cuentas
 
 Todas las rutas requieren Bearer token.
 
-### 5.1 `GET /cuentas/activas` — listar cuentas activas
+### 5.1 `POST /cuentas/buscar` — consultar cuentas
 
-- Caso aprobado: `GET {{baseUrl}}/cuentas/activas` → `200` y lista de cuentas activas de clientes activos.
-- Caso de error: sin token o token inválido → `401`. Si no hay cuentas, el resultado esperado es `200` con `[]`.
+- Body (opcional y combinable): `{ "numeroCuenta": "{{numeroCuenta}}", "activas": true }`.
+- Caso aprobado: `{}` (ADMIN) → `200` con todas las cuentas; `{ "activas": true }` → solo cuentas activas de clientes activos; `{ "numeroCuenta": "{{numeroCuenta}}" }` → esa cuenta (también para su dueño).
+- Casos de error: `numeroCuenta` que no tenga 16 dígitos → `400`; 16 dígitos no registrados → `404`; un CLIENTE sin `numeroCuenta` o con cuenta ajena → `403`; sin token → `401`.
 
-### 5.2 `GET /cuentas/{{numeroCuenta}}` — consultar cuenta
+### 5.2 `POST /cuentas/saldo` — consultar saldo
 
-- Caso aprobado: usa `{{numeroCuenta}}` → `200` con ID, saldo y estatus.
-- Casos de error: número con longitud/formato incorrectos → `400`; 16 dígitos no registrados → `404`; sin token → `401`.
-
-### 5.3 `GET /cuentas/{{numeroCuenta}}/saldo` — consultar saldo
-
-- Caso aprobado: `GET {{baseUrl}}/cuentas/{{numeroCuenta}}/saldo` → `200`, con `numeroCuenta`, `saldo` y `estatus`.
-- Casos de error: número mal formado → `400`; cuenta inexistente → `404`; sin token → `401`.
+- Body: `{ "numeroCuenta": "{{numeroCuenta}}" }`.
+- Caso aprobado: `200`, con `numeroCuenta`, `saldo` y `estatus` en `datos`.
+- Casos de error: `numeroCuenta` ausente o mal formado → `400`; cuenta inexistente → `404`; cuenta ajena (CLIENTE) → `403`; sin token → `401`.
 
 ## 6. Autenticación y usuarios
 
@@ -283,85 +262,39 @@ if (pm.response.code === 200) {
 }
 ```
 
-### 6.2 `GET /usuarios/{{usuarioId}}` — consultar usuario
+### 6.2 `POST /usuarios/consultar` — consultar usuario
 
-- Caso aprobado: `GET {{baseUrl}}/usuarios/{{usuarioId}}` → `200` con correo/estado y sin hash de contraseña.
-- Casos de error: ID inexistente → `404`; ID cero/negativo → `400`; sin token → `401`.
+- Body: `{ "id": {{usuarioId}} }`.
+- Caso aprobado: `200` con correo/estado en `datos` y sin hash de contraseña.
+- Casos de error: `id` inexistente → `404`; sin `id` o no positivo → `400`; usuario ajeno (CLIENTE) → `403`; sin token → `401`.
 
-### 6.3 `PUT /usuarios/{{usuarioId}}/password` — cambiar contraseña
+### 6.3 `PUT /usuarios/password` — cambiar contraseña
 
 - Authorization: Bearer token de un usuario activo.
 - Body:
 
   ```json
   {
+    "id": {{usuarioId}},
     "passwordActual": "{{passwordPrueba}}",
     "nuevaPassword": "NuevaPruebaSegura2!"
   }
   ```
 
-- Caso aprobado: `200 OK` sin body. Luego intenta login con la contraseña nueva y comprueba `200`.
+- Caso aprobado: `200 OK` con `mensaje` de confirmación. Luego intenta login con la contraseña nueva y comprueba `200`.
 - Casos de error:
   - Contraseña actual incorrecta → `400`.
   - Contraseña nueva sin 8 caracteres, mayúscula, minúscula, número y carácter especial → `400`.
-  - Usuario inexistente → `404`; ID no positivo → `400`; sin token → `401`.
+  - Usuario inexistente (ADMIN) → `404`; usuario ajeno (CLIENTE) → `403`; sin `id` → `400`; sin token → `401`.
 - No guardes la contraseña real en una colección compartida. Al cambiarla, actualiza `passwordPrueba` localmente para poder completar las siguientes pruebas.
 
-### 6.4 `DELETE /usuarios/{{usuarioId}}` — baja lógica de usuario
+### 6.4 `DELETE /usuarios` — baja lógica de usuario
 
-- Ejecuta esta prueba al final de las pruebas de usuario. Desactiva el usuario asociado.
-- Caso aprobado: `204 No Content`; el login posterior debe devolver `403`.
-- Casos de error: usuario inexistente → `404`; ID no positivo → `400`; sin token → `401`.
+- Body: `{ "id": {{usuarioId}} }`. Solo ADMIN. Ejecuta esta prueba al final de las pruebas de usuario.
+- Caso aprobado: `200` con `mensaje` de confirmación; el login posterior debe devolver `403`.
+- Casos de error: usuario inexistente → `404`; sin `id` o no positivo → `400`; un CLIENTE → `403`; sin token → `401`.
 
-## 7. Personas heredadas
-
-Estas rutas también están protegidas por JWT. Los campos admitidos son `nombre`, `apellidoP` y `apellidoMaterno`; cada uno es obligatorio y admite hasta 100 caracteres. Usa nombres distintos para las pruebas de creación/actualización/eliminación.
-
-### 7.1 `POST /personas` — crear persona
-
-- Body:
-
-  ```json
-  {
-    "nombre": "{{nombrePersona}}",
-    "apellidoP": "Apellido Paterno",
-    "apellidoMaterno": "Apellido Materno"
-  }
-  ```
-
-- Caso aprobado: `201 Created`; el JSON incluye `codigo: 0` y `mensaje`.
-- Casos de error: nombre/apellido vacío, ausente o de más de 100 caracteres → `400`; sin token → `401`.
-
-### 7.2 `PUT /personasActualiza` — actualizar persona
-
-- Body: enviar los tres campos; `nombre` identifica el registro existente.
-
-  ```json
-  {
-    "nombre": "{{nombrePersona}}",
-    "apellidoP": "Apellido Paterno Actualizado",
-    "apellidoMaterno": "Apellido Materno Actualizado"
-  }
-  ```
-
-- Caso aprobado: `200 OK`, `codigo: 0`.
-- Casos de error: persona no encontrada por nombre → `404`; campo vacío/ausente o más de 100 caracteres → `400`; sin token → `401`.
-
-### 7.3 `PUT /personasElimina` — eliminar persona heredada
-
-- Body:
-
-  ```json
-  {
-    "nombre": "{{nombrePersona}}"
-  }
-  ```
-
-- Caso aprobado: `200 OK`, `codigo: 0`.
-- Casos de error: nombre vacío/ausente o mayor de 100 caracteres → `400`; persona no encontrada → `404`; sin token → `401`.
-- Esta ruta elimina físicamente un registro de la tabla heredada `personas`; no confundirla con la baja lógica de clientes.
-
-## 8. Productos
+## 7. Productos
 
 Todas las rutas requieren JWT de la aplicación, aunque el parámetro `Authorization` del controlador `/getProductList` esté marcado opcional. El token que permite entrar a la API es el de `{{token}}`.
 
@@ -387,9 +320,9 @@ Todas las rutas requieren JWT de la aplicación, aunque el parámetro `Authoriza
 - Casos de error: sin JWT → `401`; si el fallback externo falla, `502` o `503` según la causa.
 - Para probar los orígenes, ejecuta antes `GET /productos` y vuelve a consultar los almacenados.
 
-## 9. Pruebas transversales de errores
+## 8. Pruebas transversales de errores
 
-Ejecuta estas solicitudes contra un endpoint protegido, por ejemplo `GET /clientes`:
+Ejecuta estas solicitudes contra un endpoint protegido, por ejemplo `POST /clientes/buscar` con body `{}`:
 
 | Prueba | Configuración/request | Esperado |
 |---|---|---|
@@ -403,12 +336,12 @@ Ejecuta estas solicitudes contra un endpoint protegido, por ejemplo `GET /client
 
 Todas las respuestas de error de la aplicación usan `timestamp`, `status`, `error` y `mensaje`; errores de validación también incluyen `detalles`. Las fallas del servicio externo de productos conservan además su contrato de producto (`codigo`, `mensaje`, `productos`) y usan HTTP `502`/`503`.
 
-## 10. Orden recomendado de ejecución
+## 9. Orden recomendado de ejecución
 
 1. `POST /clientes`, conservar IDs/cuenta y contraseña en el environment local.
 2. `POST /auth/login`, guardar `accessToken` en `token`.
 3. Validar búsquedas, consultas de cliente/cuenta/usuario y lista de cuentas activas.
-4. Probar `PUT /clientes/{{clienteId}}`, `PUT /usuarios/{{usuarioId}}/password` y los endpoints de personas/productos.
+4. Probar `PUT /clientes`, `PUT /usuarios/password` y los endpoints de productos.
 5. Probar casos de error sin modificar datos válidos; usa entradas mal formadas independientes.
-6. Ejecutar `DELETE /clientes/{{clienteId}}` y `DELETE /usuarios/{{usuarioId}}` al final y comprobar la revocación lógica.
+6. Ejecutar `DELETE /clientes` y `DELETE /usuarios` (con el `id` en el body) al final y comprobar la revocación lógica.
 7. Elimina el environment de pruebas o limpia las variables de token/contraseña al terminar. No ejecutes estas bajas contra IDs de producción.

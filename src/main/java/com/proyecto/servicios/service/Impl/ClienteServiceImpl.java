@@ -4,6 +4,7 @@ import com.proyecto.servicios.entity.*;
 import com.proyecto.servicios.exception.*;
 import com.proyecto.servicios.mapper.ClienteMapper;
 import com.proyecto.servicios.model.request.ActualizaClienteRequest;
+import com.proyecto.servicios.model.request.BuscaClienteRequest;
 import com.proyecto.servicios.model.request.RegistroClienteRequest;
 import com.proyecto.servicios.model.response.ClienteResponse;
 import com.proyecto.servicios.repositorys.*;
@@ -15,10 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.LocalTime;
-import java.time.OffsetDateTime;
 import java.time.Period;
-import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Random;
 import java.util.stream.Collectors;
@@ -109,93 +107,26 @@ public class ClienteServiceImpl implements ClienteService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<ClienteResponse> obtenerTodosLosClientes() {
-        return clienteRepository.findAll().stream()
-                .map(clienteMapper::toClienteResponse)
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<ClienteResponse> obtenerClientesActivos() {
-        return clienteRepository.findByActivo(true).stream()
-                .map(clienteMapper::toClienteResponse)
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public ClienteResponse obtenerClientePorId(Long id) {
-        Cliente cliente = clienteRepository.findById(id)
-                .orElseThrow(() -> new ClienteNoEncontradoException("No se encontró el cliente con ID: " + id));
-        return clienteMapper.toClienteResponse(cliente);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public ClienteResponse obtenerClientePorCurp(String curp) {
-        Cliente cliente = clienteRepository.findByCurp(curp.trim().toUpperCase())
-                .orElseThrow(() -> new ClienteNoEncontradoException("No se encontró el cliente con la CURP: " + curp));
-        return clienteMapper.toClienteResponse(cliente);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public ClienteResponse obtenerClientePorRfc(String rfc) {
-        Cliente cliente = clienteRepository.findByRfc(rfc.trim().toUpperCase())
-                .orElseThrow(() -> new ClienteNoEncontradoException("No se encontró el cliente con el RFC: " + rfc));
-        return clienteMapper.toClienteResponse(cliente);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public ClienteResponse obtenerClientePorCorreo(String correo) {
-        Cliente cliente = clienteRepository.findByCorreo(correo.trim().toLowerCase())
-                .orElseThrow(() -> new ClienteNoEncontradoException("No se encontró el cliente con el correo: " + correo));
-        return clienteMapper.toClienteResponse(cliente);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public ClienteResponse obtenerClientePorNumeroCuenta(String numeroCuenta) {
-        Cliente cliente = clienteRepository.findByNumeroCuenta(numeroCuenta.trim())
-                .orElseThrow(() -> new ClienteNoEncontradoException("No se encontró el cliente asociado a la cuenta: " + numeroCuenta));
-        return clienteMapper.toClienteResponse(cliente);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<ClienteResponse> obtenerClientesPorRangoFechas(LocalDate fechaInicio, LocalDate fechaFin) {
-        OffsetDateTime start = fechaInicio.atStartOfDay().atOffset(ZoneOffset.UTC);
-        OffsetDateTime end = fechaFin.atTime(LocalTime.MAX).atOffset(ZoneOffset.UTC);
-        return clienteRepository.findClientesByRangoFechas(start, end).stream()
-                .map(clienteMapper::toClienteResponse)
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<ClienteResponse> buscarClientesDinamico(
-            String curp,
-            String rfc,
-            String correo,
-            String nombre,
-            String apellido,
-            Boolean activo,
-            LocalDate fechaInicio,
-            LocalDate fechaFin,
-            String numeroCuenta
-    ) {
-        return clienteRepository.findAll(
-                ClienteSpecification.buscarConFiltros(curp, rfc, correo, nombre, apellido, activo, fechaInicio, fechaFin, numeroCuenta)
-        ).stream().map(clienteMapper::toClienteResponse).collect(Collectors.toList());
+    public List<ClienteResponse> buscarClientesDinamico(BuscaClienteRequest c) {
+        List<Cliente> clientes = clienteRepository.findAll(
+                ClienteSpecification.buscarConFiltros(c.getId(), c.getCurp(), c.getRfc(), c.getCorreo(), c.getNombre(),
+                        c.getApellido(), c.getActivo(), c.getFechaInicio(), c.getFechaFin(), c.getNumeroCuenta())
+        );
+        if (clientes.isEmpty() && c.getId() != null) {
+            throw new ClienteNoEncontradoException("No se encontró el cliente con ID: " + c.getId());
+        }
+        // Si ningún cliente coincide con los filtros, se regresan todos
+        if (clientes.isEmpty()) {
+            clientes = clienteRepository.findAll();
+        }
+        return clientes.stream().map(clienteMapper::toClienteResponse).collect(Collectors.toList());
     }
 
     @Override
     @Transactional
-    public ClienteResponse actualizarCliente(Long id, ActualizaClienteRequest request) {
-        Cliente cliente = clienteRepository.findById(id)
-                .orElseThrow(() -> new ClienteNoEncontradoException("No se encontró el cliente con ID: " + id));
+    public ClienteResponse actualizarCliente(ActualizaClienteRequest request) {
+        Cliente cliente = clienteRepository.findById(request.getId())
+                .orElseThrow(() -> new ClienteNoEncontradoException("No se encontró el cliente con ID: " + request.getId()));
 
         // Validar mayoría de edad
         if (Period.between(request.getFechaNacimiento(), LocalDate.now()).getYears() < 18) {

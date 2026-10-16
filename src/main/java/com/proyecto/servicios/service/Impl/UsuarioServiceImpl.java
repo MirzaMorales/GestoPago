@@ -35,9 +35,9 @@ public class UsuarioServiceImpl implements UsuarioService {
 
     @Override
     @Transactional
-    public void cambiarPassword(Long id, CambiaPasswordRequest request) {
-        Usuario usuario = usuarioRepository.findById(id)
-                .orElseThrow(() -> new UsuarioNoEncontradoException("No se encontró el usuario con ID: " + id));
+    public void cambiarPassword(CambiaPasswordRequest request) {
+        Usuario usuario = usuarioRepository.findById(request.getId())
+                .orElseThrow(() -> new UsuarioNoEncontradoException("No se encontró el usuario con ID: " + request.getId()));
 
         if (!passwordEncoder.matches(request.getPasswordActual(), usuario.getPassword())) {
             throw new ContrasenaInvalidaException("La contraseña actual proporcionada es incorrecta");

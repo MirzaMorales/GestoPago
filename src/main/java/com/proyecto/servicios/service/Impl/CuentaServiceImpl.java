@@ -4,6 +4,7 @@ import com.proyecto.servicios.entity.Cuenta;
 import com.proyecto.servicios.entity.EstatusCuenta;
 import com.proyecto.servicios.exception.CuentaNoEncontradaException;
 import com.proyecto.servicios.mapper.ClienteMapper;
+import com.proyecto.servicios.model.request.BuscaCuentaRequest;
 import com.proyecto.servicios.model.response.CuentaResponse;
 import com.proyecto.servicios.model.response.SaldoResponse;
 import com.proyecto.servicios.repositorys.CuentaRepository;
@@ -26,18 +27,19 @@ public class CuentaServiceImpl implements CuentaService {
 
     @Override
     @Transactional(readOnly = true)
-    public CuentaResponse obtenerCuentaPorNumero(String numeroCuenta) {
-        Cuenta cuenta = cuentaRepository.findByNumeroCuenta(numeroCuenta.trim())
-                .orElseThrow(() -> new CuentaNoEncontradaException("No se encontró la cuenta bancaria: " + numeroCuenta));
-        return clienteMapper.toCuentaResponse(cuenta);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<CuentaResponse> obtenerCuentasActivas() {
-        return cuentaRepository.findByEstatusAndActiveClient(EstatusCuenta.ACTIVA).stream()
-                .map(clienteMapper::toCuentaResponse)
-                .collect(Collectors.toList());
+    public List<CuentaResponse> buscarCuentas(BuscaCuentaRequest request) {
+        List<Cuenta> cuentas;
+        if (request.getNumeroCuenta() != null && !request.getNumeroCuenta().isBlank()) {
+            String numeroCuenta = request.getNumeroCuenta().trim();
+            Cuenta cuenta = cuentaRepository.findByNumeroCuenta(numeroCuenta)
+                    .orElseThrow(() -> new CuentaNoEncontradaException("No se encontró la cuenta bancaria: " + numeroCuenta));
+            cuentas = List.of(cuenta);
+        } else if (request.isActivas()) {
+            cuentas = cuentaRepository.findByEstatusAndActiveClient(EstatusCuenta.ACTIVA);
+        } else {
+            cuentas = cuentaRepository.findAll();
+        }
+        return cuentas.stream().map(clienteMapper::toCuentaResponse).collect(Collectors.toList());
     }
 
     @Override

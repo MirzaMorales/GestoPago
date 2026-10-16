@@ -16,6 +16,10 @@ import java.time.LocalDate;
 @AllArgsConstructor
 public class ActualizaClienteRequest {
 
+    @NotNull(message = "El ID del cliente es obligatorio")
+    @Positive(message = "El ID debe ser positivo")
+    private Long id;
+
     @NotBlank(message = "El nombre es obligatorio")
     @Size(min = 2, max = 50, message = "El nombre debe tener entre 2 y 50 caracteres")
     @Pattern(regexp = "^[\\p{L}\\p{M}\\s.'’\\-]+$", message = "El nombre contiene caracteres inválidos")
