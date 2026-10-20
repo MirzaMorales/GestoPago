@@ -102,6 +102,15 @@ public class GlobalExceptionHandler {
         return response(HttpStatus.NOT_FOUND, ex.getMessage());
     }
 
+    @ExceptionHandler(PagoException.class)
+    public ResponseEntity<GenericResponse<Void>> handlePagoException(PagoException ex) {
+        CodigoErrorPago error = ex.getError();
+        Map<String, String> detalles = new HashMap<>();
+        detalles.put("codigo", String.valueOf(error.getCodigo()));
+        detalles.put("error", error.name());
+        return response(error.getStatus(), error.getMensaje(), detalles);
+    }
+
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<GenericResponse<Void>> handleAccessDenied(AccessDeniedException ex) {
         return response(HttpStatus.FORBIDDEN, "No tiene permisos para acceder a este recurso");
