@@ -108,6 +108,9 @@ public class GlobalExceptionHandler {
         Map<String, String> detalles = new HashMap<>();
         detalles.put("codigo", String.valueOf(error.getCodigo()));
         detalles.put("error", error.name());
+        if (ex.getDetalle() != null) {
+            detalles.put("detalle", ex.getDetalle());
+        }
         return response(error.getStatus(), error.getMensaje(), detalles);
     }
 
