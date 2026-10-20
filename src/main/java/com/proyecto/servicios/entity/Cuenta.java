@@ -33,6 +33,10 @@ public class Cuenta {
     @Column(nullable = false, length = 20)
     private EstatusCuenta estatus;
 
+    /** Hash BCrypt del PIN de autorización; null si el titular aún no lo configura. */
+    @Column(name = "pin_autorizacion", length = 100)
+    private String pinAutorizacion;
+
     @Column(name = "fecha_apertura", nullable = false, updatable = false)
     private OffsetDateTime fechaApertura;
 

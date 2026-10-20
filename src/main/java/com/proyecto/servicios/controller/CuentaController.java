@@ -3,6 +3,7 @@ package com.proyecto.servicios.controller;
 import com.proyecto.servicios.model.GenericResponse;
 import com.proyecto.servicios.model.request.BuscaCuentaRequest;
 import com.proyecto.servicios.model.request.ConsultaSaldoRequest;
+import com.proyecto.servicios.model.request.EstablecePinRequest;
 import com.proyecto.servicios.model.response.CuentaResponse;
 import com.proyecto.servicios.model.response.SaldoResponse;
 import com.proyecto.servicios.service.CuentaService;
@@ -38,5 +39,13 @@ public class CuentaController {
     public ResponseEntity<GenericResponse<SaldoResponse>> obtenerSaldoCuenta(@Valid @RequestBody ConsultaSaldoRequest request) {
         SaldoResponse saldo = cuentaService.obtenerSaldoCuenta(request.getNumeroCuenta());
         return ResponseEntity.ok(GenericResponse.ok(HttpStatus.OK, "Saldo consultado correctamente", saldo));
+    }
+
+    /** Configura o cambia el PIN de autorización de pagos; solo el titular de la cuenta. */
+    @PostMapping("/pin")
+    @PreAuthorize("@accesos.esDuenoDeCuenta(#request.numeroCuenta)")
+    public ResponseEntity<GenericResponse<Void>> establecerPin(@Valid @RequestBody EstablecePinRequest request) {
+        cuentaService.establecerPin(request);
+        return ResponseEntity.ok(GenericResponse.ok(HttpStatus.OK, "PIN de autorización configurado correctamente", null));
     }
 }
