@@ -102,6 +102,18 @@ public class GlobalExceptionHandler {
         return response(HttpStatus.NOT_FOUND, ex.getMessage());
     }
 
+    @ExceptionHandler(PagoException.class)
+    public ResponseEntity<GenericResponse<Void>> handlePagoException(PagoException ex) {
+        CodigoErrorPago error = ex.getError();
+        Map<String, String> detalles = new HashMap<>();
+        detalles.put("codigo", String.valueOf(error.getCodigo()));
+        detalles.put("error", error.name());
+        if (ex.getDetalle() != null) {
+            detalles.put("detalle", ex.getDetalle());
+        }
+        return response(error.getStatus(), error.getMensaje(), detalles);
+    }
+
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<GenericResponse<Void>> handleAccessDenied(AccessDeniedException ex) {
         return response(HttpStatus.FORBIDDEN, "No tiene permisos para acceder a este recurso");
@@ -124,6 +136,13 @@ public class GlobalExceptionHandler {
     })
     public ResponseEntity<GenericResponse<Void>> handleBadRequestExceptions(RuntimeException ex) {
         return response(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    /** Errores HTTP del proveedor fuera del flujo de pago: nunca se expone ni se registra el mensaje original (puede traer URL o credenciales). */
+    @ExceptionHandler(feign.FeignException.class)
+    public ResponseEntity<GenericResponse<Void>> handleFeignException(feign.FeignException ex) {
+        log.error("Error al comunicarse con GestoPago: status={}", ex.status());
+        return response(HttpStatus.BAD_GATEWAY, "No fue posible comunicarse con el proveedor de pagos");
     }
 
     @ExceptionHandler(Exception.class)

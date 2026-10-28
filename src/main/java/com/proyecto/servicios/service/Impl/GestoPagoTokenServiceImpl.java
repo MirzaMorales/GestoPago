@@ -6,11 +6,14 @@ import com.proyecto.servicios.mapper.GestoPagoTokenMapper;
 import com.proyecto.servicios.model.gestopago.GestoPagoAuthResponse;
 import com.proyecto.servicios.repositorys.gestopago.GestoPagoTokenRepository;
 import com.proyecto.servicios.service.GestoPagoTokenService;
+import feign.FeignException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 @Service
@@ -30,6 +33,9 @@ public class GestoPagoTokenServiceImpl implements GestoPagoTokenService {
     @Value("${gestopago.auth.password}")
     private String password;
 
+    @Value("${gestopago.auth.edad-maxima-horas:23}")
+    private long edadMaximaHoras;
+
     public GestoPagoTokenServiceImpl(GestoPagoAuthClient gestoPagoAuthClient,
                                      GestoPagoTokenRepository tokenRepository,
                                      GestoPagoTokenMapper tokenMapper) {
@@ -41,7 +47,27 @@ public class GestoPagoTokenServiceImpl implements GestoPagoTokenService {
     @Override
     @Scheduled(fixedRateString = "${gestopago.auth.refresh-rate-ms:3600000}", initialDelay = 0)
     public void renovarToken() {
-        log.info("Renovando token GestoPago para distribuidor={}", idDistribuidor);
+        Optional<GestoPagoToken> existente = tokenRepository
+                .findByIdDistribuidorAndCodigoDispositivo(idDistribuidor, codigoDispositivo);
+        if (existente.isPresent() && !estaVencido(existente.get())) {
+            log.debug("Token GestoPago vigente; no se solicita uno nuevo");
+            return;
+        }
+        solicitarNuevoToken();
+    }
+
+    @Override
+    public void renovarTokenForzado() {
+        solicitarNuevoToken();
+    }
+
+    private boolean estaVencido(GestoPagoToken token) {
+        LocalDateTime ultima = token.getFechaActualizacion() != null ? token.getFechaActualizacion() : token.getFechaCreacion();
+        return ultima == null || Duration.between(ultima, LocalDateTime.now()).toHours() >= edadMaximaHoras;
+    }
+
+    private void solicitarNuevoToken() {
+        log.info("Solicitando token GestoPago para distribuidor={}", idDistribuidor);
         try {
             GestoPagoAuthResponse response = gestoPagoAuthClient.authenticate(
                     idDistribuidor, codigoDispositivo, password);
@@ -68,8 +94,11 @@ public class GestoPagoTokenServiceImpl implements GestoPagoTokenService {
             tokenRepository.save(tokenEntity);
             log.info("Token GestoPago renovado correctamente");
 
+        } catch (FeignException e) {
+            // No se registra e.getMessage(): incluye la URL de autenticación con la contraseña como parámetro.
+            log.error("Error al solicitar token GestoPago: status={}", e.status());
         } catch (Exception e) {
-            log.error("Error al renovar token GestoPago: {}", e.getMessage(), e);
+            log.error("Error al solicitar token GestoPago: {}", e.getClass().getSimpleName());
         }
     }
 

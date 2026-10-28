@@ -2,7 +2,9 @@ package com.proyecto.servicios.repositorys;
 
 import com.proyecto.servicios.entity.Cuenta;
 import com.proyecto.servicios.entity.EstatusCuenta;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -14,6 +16,11 @@ import java.util.Optional;
 public interface CuentaRepository extends JpaRepository<Cuenta, Long> {
 
     Optional<Cuenta> findByNumeroCuenta(String numeroCuenta);
+
+    /** Bloquea la fila de la cuenta (SELECT ... FOR UPDATE) para modificar el saldo sin carreras. */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT c FROM Cuenta c WHERE c.numeroCuenta = :numeroCuenta")
+    Optional<Cuenta> findByNumeroCuentaParaActualizar(@Param("numeroCuenta") String numeroCuenta);
 
     boolean existsByNumeroCuenta(String numeroCuenta);
 

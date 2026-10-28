@@ -127,9 +127,22 @@ public class ProductoServiceImpl implements ProductoService {
                         .servicio(getAttrString(el, "servicio"))
                         .idCatTipoServicio(parseAttrInt(el, "idCatTipoServicio"))
                         .tipoFront(parseAttrInt(el, "tipoFront"))
+                        .precio(parseAttrDecimal(el, "precio"))
                         .legend(getLegendContent(el))
                         .build();
                 listaProductos.add(dto);
+            }
+
+            if (listaProductos.isEmpty()) {
+                // Un catálogo vacío no es un éxito: no se guarda (evita borrar la caché válida) y se informa lo que respondió el proveedor
+                NodeList codigoNodes = doc.getElementsByTagName("CODIGO");
+                String codigoProveedor = codigoNodes.getLength() > 0 ? codigoNodes.item(0).getTextContent().trim() : "sin código";
+                log.warn("GestoPago no devolvió productos (CODIGO {}): {}", codigoProveedor, mensajeTexto);
+                return ProductoListResponse.builder()
+                        .codigo(1)
+                        .mensaje("GestoPago no devolvió productos (código " + codigoProveedor + "): " + mensajeTexto)
+                        .productos(new ArrayList<>())
+                        .build();
             }
 
             log.info("Lista de productos obtenida correctamente de la API. Total productos: {}", listaProductos.size());
@@ -145,7 +158,7 @@ public class ProductoServiceImpl implements ProductoService {
                     .build();
 
         } catch (Exception e) {
-            log.error("Error al obtener la lista de productos de GestoPago: {}", e.getMessage(), e);
+            log.error("Error al obtener la lista de productos de GestoPago: {}", e.getClass().getSimpleName());
             return ProductoListResponse.builder()
                     .codigo(1)
                     .mensaje("No se pudo obtener o procesar la respuesta del servicio de productos")
@@ -264,6 +277,7 @@ public class ProductoServiceImpl implements ProductoService {
                         .servicio(dto.getServicio())
                         .idCatTipoServicio(dto.getIdCatTipoServicio())
                         .tipoFront(dto.getTipoFront())
+                        .precio(dto.getPrecio())
                         .legend(dto.getLegend())
                         .fechaActualizacion(ahora)
                         .build()).toList();
@@ -294,6 +308,17 @@ public class ProductoServiceImpl implements ProductoService {
         if (val != null && !val.isBlank()) {
             try {
                 return Integer.parseInt(val.trim());
+            } catch (NumberFormatException ignored) {
+            }
+        }
+        return null;
+    }
+
+    private java.math.BigDecimal parseAttrDecimal(Element el, String attrName) {
+        String val = getAttrString(el, attrName);
+        if (val != null && !val.isBlank()) {
+            try {
+                return new java.math.BigDecimal(val.trim());
             } catch (NumberFormatException ignored) {
             }
         }

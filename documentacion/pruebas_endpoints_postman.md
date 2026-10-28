@@ -5,10 +5,15 @@ Esta guía permite probar manualmente los endpoints REST de GestoPago desde Post
 ## 1. Preparar la aplicación
 
 1. Inicia PostgreSQL y Redis con la configuración local de la aplicación. Flyway debe terminar de aplicar las migraciones.
-2. Define `APP_JWT_SECRET` como una cadena aleatoria de al menos 32 bytes y arranca la aplicación desde la raíz:
+2. Define los secretos por variable de entorno (ya no tienen valores por defecto en el código) y arranca la aplicación desde la raíz:
 
    ```powershell
    $env:APP_JWT_SECRET = "<secreto-local-aleatorio-de-al-menos-32-bytes>"
+   $env:DB_PASSWORD = "<contraseña-de-tu-postgres-local>"
+   $env:GESTOPAGO_AUTH_PASSWORD = "<contraseña-del-dispositivo-gestopago>"
+   # Solo para pagos reales contra GestoPago (cifrado AES-256 del payload):
+   $env:GESTOPAGO_CRYPTO_KEY = "<key-base64>"
+   $env:GESTOPAGO_CRYPTO_IV = "<iv-base64>"
    .\gradlew.bat bootRun
    ```
 

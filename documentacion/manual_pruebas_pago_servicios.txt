@@ -1,0 +1,206 @@
+=====================================================================
+MANUAL DE PRUEBAS - PAGO DE SERVICIOS (POST /pagos/servicio)
+=====================================================================
+Rama: feature/pago-servicios
+Todos los datos son ficticios. Base URL: http://localhost:8081 (ajusta el
+puerto; el 8080 puede estar ocupado por otro servicio).
+En Postman: Body > raw > JSON. Rutas protegidas: Authorization >
+Bearer Token (pega solo el token, sin la palabra "Bearer").
+Marca con [CAPTURA] el momento de tomar evidencia.
+
+---------------------------------------------------------------------
+0. PREPARACION
+---------------------------------------------------------------------
+0.1 Pruebas automatizadas (raiz del proyecto)
+    .\gradlew.bat test
+    [CAPTURA] BUILD SUCCESSFUL (unitarias + integracion).
+
+0.2 Levantar Postgres y Redis (Docker) y arrancar la app.
+    Los secretos YA NO tienen valor por defecto: sin ellos no arranca.
+
+    $env:APP_JWT_SECRET = "cambia-esto-por-un-secreto-de-32-bytes-o-mas"
+    $env:DB_PASSWORD = "<tu contrasena de postgres>"
+    $env:GESTOPAGO_AUTH_PASSWORD = "<contrasena del dispositivo>"
+    $env:APP_ADMIN_CORREO = "admin.pruebas@example.test"
+    $env:APP_ADMIN_PASSWORD = "AdminPrueba1!"
+    $env:SERVER_PORT = "8081"
+    # Para pagos REALES contra GestoPago (AES-256, Base64):
+    $env:GESTOPAGO_CRYPTO_KEY = "<key>"
+    $env:GESTOPAGO_CRYPTO_IV = "<iv>"
+    .\gradlew.bat bootRun
+
+    Sin CRYPTO_KEY/IV el pago valido responde 500 FIRMA_NO_CONFIGURADA
+    (1105) y el saldo se devuelve: es una prueba valida (PG-10).
+
+0.3 Migraciones (V8, V9, V10) en la BD:
+    SELECT version, description FROM flyway_schema_history
+    ORDER BY installed_rank DESC LIMIT 4;
+
+---------------------------------------------------------------------
+1. PREPARAR DATOS
+---------------------------------------------------------------------
+1.1 Login ADMIN
+    POST /auth/login
+    { "correo": "admin.pruebas@example.test", "password": "AdminPrueba1!" }
+    Copia "accessToken" -> <TOKEN_ADMIN>
+
+1.2 Registrar cliente A (sin token). Cambia correo, curp y rfc si repites.
+    POST /clientes
+    {
+      "nombre": "Maria-Jose", "segundoNombre": "QA",
+      "apellidoPaterno": "Gomez", "apellidoMaterno": "Prueba",
+      "fechaNacimiento": "1985-01-01",
+      "curp": "GODE850101HDFRRN09", "rfc": "GODE850101AB1",
+      "sexo": "FEMENINO", "nacionalidad": "Mexicana",
+      "estadoCivil": "SOLTERA", "correo": "prueba.pago@example.test",
+      "telefonoMovil": "5512345678", "telefonoAlternativo": "5587654321",
+      "ocupacion": "Analista QA", "empresa": "Empresa Ficticia",
+      "ingresoMensual": 25000.50,
+      "domicilio": {
+        "calle": "Avenida de Prueba", "numeroExterior": "123",
+        "numeroInterior": "4B", "colonia": "Centro",
+        "municipio": "Cuauhtemoc", "estado": "Ciudad de Mexico",
+        "codigoPostal": "06000", "pais": "Mexico"
+      },
+      "password": "PruebaSegura1!"
+    }
+    Esperado 201. Copia "datos.id" -> <ID_CLIENTE>.
+    OJO: la respuesta devuelve "cuentas": [] aunque la cuenta SI se crea.
+    Obten el numero de cuenta (con <TOKEN_ADMIN>):
+      POST /clientes/buscar
+      { "id": <ID_CLIENTE>, "incluirCuentas": true }
+    Busca "numeroCuenta" (16 digitos) -> <CUENTA>.
+
+1.3 Login del cliente
+    POST /auth/login
+    { "correo": "prueba.pago@example.test", "password": "PruebaSegura1!" }
+    "accessToken" -> <TOKEN_USUARIO>
+
+1.4 Segundo cliente B (misma estructura; cambia curp, rfc, correo, nombre)
+    curp "LOPM900505MDFPRR08", rfc "LOPM900505XY2",
+    correo "otro.usuario@example.test". Login -> <TOKEN_OTRO>
+
+1.5 Abonar saldo (solo ADMIN)
+    POST /cuentas/abono    (con <TOKEN_ADMIN>)
+    { "numeroCuenta": "<CUENTA>", "monto": 1000.00 }
+    Esperado 200 y "datos.saldo": 1000.00
+    Errores: token de cliente -> 403; monto 0 -> 400; cuenta
+    inexistente -> 404.
+
+1.6 Catalogo de productos
+    GET /productos/almacenados   (lee Redis/BD; NO llama al proveedor)
+    Elige un producto con tipoFront 1 (recarga) y otro con tipoFront 2
+    (pago de servicio). Anota idProducto e idServicio.
+    ADVERTENCIA: GET /productos y GET /getProductList SI llaman a
+    GestoPago y el proveedor solo permite 3 llamadas por dia (bloquea
+    la IP si se abusa). Usalo una vez al dia como maximo.
+    El PRECIO de cada producto se guarda al actualizar el catalogo.
+    Mientras no haya precio, las recargas (tipoFront 1) se rechazan con
+    503 PRECIO_NO_DISPONIBLE (1017): es la salvaguarda esperada.
+
+1.4 PIN de la cuenta (con <TOKEN_USUARIO>)
+    POST /cuentas/pin
+    { "numeroCuenta": "<CUENTA>", "pinNuevo": "1234" }
+    Esperado 200. PIN incorrecto al cambiarlo -> 400.
+
+---------------------------------------------------------------------
+2. REGLAS DEL PAGO (header obligatorio)
+---------------------------------------------------------------------
+Todas las peticiones de pago llevan el header
+    Idempotency-Key: <texto unico de 8 a 64 caracteres: letras,
+                      numeros, guion o guion bajo>
+Usa una llave NUEVA por cada pago nuevo (por ejemplo un GUID).
+
+Body base de POST /pagos/servicio (<TOKEN_USUARIO>):
+    {
+      "numeroCuenta": "<CUENTA>", "pin": "1234", "monto": 601.99,
+      "telefonoReferencia": "25720381",
+      "idServicio": <ID_SERVICIO>, "idProducto": <ID_PRODUCTO>,
+      "tipoFront": 2
+    }
+Recargas (tipoFront 1): "monto" debe ser IGUAL al precio del catalogo y
+"telefonoReferencia" son 10 digitos. Pagos de servicio (tipoFront 2):
+monto libre hasta 20000.00.
+
+---------------------------------------------------------------------
+3. CASOS (errores esperados)
+---------------------------------------------------------------------
+PG-03  Body invalido (cuenta "123", pin "12a4", monto 0)
+       -> 400 con "detalles" por campo.
+PG-03b Sin header Idempotency-Key -> 400, IDEMPOTENCY_KEY_INVALIDA (1018)
+PG-04  PIN incorrecto -> 403, PIN_INCORRECTO (1004)
+PG-05  Pago de servicio con monto 20000.00 y saldo 1000.00
+       -> 422, SALDO_INSUFICIENTE (1005)
+M-03   Pago de servicio con monto 20000.01
+       -> 422, MONTO_EXCEDE_LIMITE (1014)
+PG-07a idServicio que no corresponde -> 422 (1007)
+PG-07b tipoFront que no corresponde  -> 422 (1008)
+PG-07c idProducto inexistente        -> 404 (1006)
+M-04   Producto tipoFront 4 (verificacion) -> 422 (1015)
+M-01   Recarga con monto distinto al precio -> 422 MONTO_NO_COINCIDE (1013)
+M-02   Recarga con telefono de 9 digitos     -> 422 REFERENCIA_INVALIDA (1016)
+PG-08  Token de otro cliente sobre tu cuenta -> 403
+PG-09  Sin token -> 401
+Tras cada caso consulta POST /cuentas/saldo { "numeroCuenta": "<CUENTA>" }
+y comprueba que el saldo no cambio.
+
+---------------------------------------------------------------------
+4. IDEMPOTENCIA
+---------------------------------------------------------------------
+ID-A  Pago exitoso con llave K1 -> 200. Saldo descontado una vez.
+ID-B  Repetir EXACTAMENTE la misma peticion con K1
+      -> 200 con "repetida": true. El saldo NO cambia.
+ID-C  Misma llave K1 con otro monto o referencia
+      -> 422, IDEMPOTENCY_KEY_REUTILIZADA (1009)
+ID-D  Reusar la llave de un pago fallido
+      -> 409, PAGO_PREVIO_FALLIDO (1011). Usa una llave nueva.
+ID-E  Misma operacion con otra llave mientras la primera esta
+      EN_REVISION -> 409, PAGO_EN_PROCESO (1010)
+
+---------------------------------------------------------------------
+5. BLOQUEO DE PIN
+---------------------------------------------------------------------
+Con la cuenta B: 5 pagos con PIN incorrecto.
+  Intentos 1 a 4 -> 403 (1004).  Intento 5 -> 423 PIN_BLOQUEADO (1012).
+  Un PIN correcto estando bloqueada -> 423 (15 minutos).
+
+---------------------------------------------------------------------
+6. PROVEEDOR (requiere CRYPTO_KEY/IV y confirmar que es entorno de pruebas)
+---------------------------------------------------------------------
+Escenarios documentados por el proveedor (solo entorno de pruebas):
+  - Recarga exitosa: producto 582 / servicio 133, telefono 5555555551
+  - Timeout (codigo 82): producto 582 / servicio 133, telefono 9999999991
+    (el proveedor tarda ~62 s; la app espera hasta 70 s)
+  - Pago de servicio ya aplicado (codigo 06): producto 205 / servicio 76,
+    referencia 25720381, monto 601.99
+Resultados esperados de la app:
+  Codigo 01  -> 200, saldo descontado, transaccion EXITOSA.
+  Codigo 06 u otro rechazo -> 409/422, saldo DEVUELTO, detalle con el
+             codigo del proveedor (sin su texto interno).
+  Codigo 82 / red caida -> 504 / 502, saldo RETENIDO, EN_REVISION.
+
+---------------------------------------------------------------------
+7. CONCILIACION (solo ADMIN, <TOKEN_ADMIN>)
+---------------------------------------------------------------------
+POST /pagos/conciliacion/pendientes
+    Lista operaciones PENDIENTE o EN_REVISION. Si requiereResolucionManual
+    es true (mas de 24 h o sin payload guardado) se resuelve a mano.
+POST /pagos/conciliacion/ejecutar
+    Consulta confirmTx de las operaciones elegibles (no antes de 70 s
+    del envio, ni despues de 24 h). Tambien corre sola cada 2 minutos.
+    confirmTx codigo 06 -> EXITOSA ; codigo 70 -> FALLIDA y se devuelve
+    el saldo.
+POST /pagos/conciliacion/resolver
+    { "idTransaccion": <ID>, "accion": "CONFIRMAR" | "REVERTIR",
+      "observacion": "texto obligatorio" }
+    Resolver dos veces -> 409 (1202). Un cliente -> 403.
+
+---------------------------------------------------------------------
+8. RESUMEN
+---------------------------------------------------------------------
+Todas las pruebas de error NO deben modificar el saldo. Solo el pago
+exitoso lo descuenta (una vez), y un rechazo del proveedor lo devuelve.
+Un resultado incierto lo RETIENE hasta conciliar.
+
+Limpieza opcional:
+  Los clientes y transacciones de prueba se conservan como bitacora.
