@@ -20,6 +20,13 @@ services:
         generateValue: true
       - key: GESTOPAGO_AUTH_PASSWORD
         sync: false
+      # Secretos del cifrado/firma de sendTx y API key del proveedor: se capturan en el panel, nunca en el repositorio
+      - key: GESTOPAGO_CRYPTO_KEY
+        sync: false
+      - key: GESTOPAGO_CRYPTO_IV
+        sync: false
+      - key: GESTOPAGO_API_KEY
+        sync: false
 
   - type: keyvalue
     name: gestopago-redis

@@ -9,6 +9,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
@@ -37,6 +38,9 @@ public class ProductoEntity {
 
     @Column(name = "tipo_front")
     private Integer tipoFront;
+
+    @Column(name = "precio", precision = 15, scale = 2)
+    private BigDecimal precio;
 
     @Column(name = "legend", columnDefinition = "TEXT")
     private String legend;
