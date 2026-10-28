@@ -1,14 +1,10 @@
 package com.proyecto.servicios.service.Impl;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.proyecto.servicios.client.GestoPagoServiceClient;
 import com.proyecto.servicios.entity.gestopago.GestoPagoToken;
-import com.proyecto.servicios.entity.gestopago.ProductoEntity;
 import com.proyecto.servicios.exception.CodigoErrorPago;
 import com.proyecto.servicios.exception.PagoException;
 import com.proyecto.servicios.model.gestopago.SendTxResponse;
-import com.proyecto.servicios.model.request.PagoServicioRequest;
 import com.proyecto.servicios.service.GestoPagoTokenService;
 import com.proyecto.servicios.service.GestoPagoTxService;
 import com.proyecto.servicios.util.AesEncryption;
@@ -27,31 +23,17 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import java.io.StringReader;
 import java.math.BigDecimal;
 import java.security.GeneralSecurityException;
-import java.security.SecureRandom;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.function.BiFunction;
 
 @Service
 @Slf4j
 public class GestoPagoTxServiceImpl implements GestoPagoTxService {
-
-    private static final DateTimeFormatter HORA_LOCAL = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
-    private static final String TELEFONO_FIJO_TIPO_FRONT_2 = "1111111111";
-    private static final String TELEFONO_FIJO_SERVICIOS = "#1111111111";
-    private static final String BASE36 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    private static final SecureRandom RANDOM = new SecureRandom();
 
     @Autowired
     private GestoPagoServiceClient gestoPagoServiceClient;
 
     @Autowired
     private GestoPagoTokenService tokenService;
-
-    @Autowired
-    private ObjectMapper objectMapper;
 
     @Value("${gestopago.auth.id-distribuidor}")
     private Integer idDistribuidor;
@@ -65,76 +47,59 @@ public class GestoPagoTxServiceImpl implements GestoPagoTxService {
     @Value("${gestopago.crypto.iv:}")
     private String cryptoIv;
 
-    @Value("${gestopago.tx.unidad:083}")
-    private String unidad;
-
-    @Value("${gestopago.tx.zona-horaria:America/Mexico_City}")
-    private String zonaHoraria;
+    @Value("${gestopago.api-key:}")
+    private String apiKey;
 
     @Override
-    public SendTxResponse enviarTx(PagoServicioRequest request, ProductoEntity producto) {
-        GestoPagoToken token = tokenService.obtenerTokenActivo(idDistribuidor, codigoDispositivo)
-                .orElseThrow(() -> new PagoException(CodigoErrorPago.GESTOPAGO_TOKEN_NO_DISPONIBLE));
+    public SendTxResponse enviarTx(String payloadJson) {
+        return invocar(payloadJson, (bearer, form) -> gestoPagoServiceClient.sendTxRaw(bearer, apiKeyONull(), form));
+    }
 
-        String signed = firmar(construirPayload(request, producto));
+    @Override
+    public SendTxResponse confirmarTx(String payloadJson) {
+        return invocar(payloadJson, (bearer, form) -> gestoPagoServiceClient.confirmTxRaw(bearer, apiKeyONull(), form));
+    }
+
+    private SendTxResponse invocar(String payloadJson, BiFunction<String, MultiValueMap<String, String>, String> llamada) {
+        String signed = firmar(payloadJson);
 
         MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
         form.add("random", String.valueOf(System.currentTimeMillis()));
         form.add("signed", signed);
 
-        String bearer = token.getToken().startsWith("Bearer ") ? token.getToken() : "Bearer " + token.getToken();
         String rawXml;
         try {
-            rawXml = gestoPagoServiceClient.sendTxRaw(bearer, form);
+            rawXml = llamada.apply(bearer(obtenerToken()), form);
+        } catch (FeignException.Forbidden e) {
+            // 403 = token vencido: el proveedor no procesó la petición, por lo que es seguro renovar y reenviar una sola vez.
+            log.warn("GestoPago respondió 403 (token vencido); se renueva el token y se reintenta una vez");
+            tokenService.renovarTokenForzado();
+            try {
+                rawXml = llamada.apply(bearer(obtenerToken()), form);
+            } catch (FeignException e2) {
+                log.error("Error al llamar a GestoPago tras renovar el token: status={}", e2.status());
+                throw new PagoException(CodigoErrorPago.GESTOPAGO_NO_DISPONIBLE);
+            }
         } catch (FeignException e) {
-            log.error("Error al llamar sendTx de GestoPago: status={}", e.status());
+            // Se registra solo el status: el mensaje original puede incluir URL y encabezados.
+            log.error("Error al llamar a GestoPago: status={}", e.status());
             throw new PagoException(CodigoErrorPago.GESTOPAGO_NO_DISPONIBLE);
         }
 
-        SendTxResponse respuesta = parsearRespuesta(rawXml);
-        if (!respuesta.isExitoso()) {
-            log.warn("GestoPago rechazó la transacción: codigo={}", respuesta.getCodigo());
-            throw new PagoException(CodigoErrorPago.GESTOPAGO_RECHAZADO,
-                    "CODIGO " + respuesta.getCodigo() + (respuesta.getLeyenda() != null ? ": " + respuesta.getLeyenda() : ""));
-        }
-        return respuesta;
+        return parsearRespuesta(rawXml);
     }
 
-    /**
-     * JSON de sendTx. El campo telefono depende de tipoFront / idCatTipoServicio; cuando el
-     * telefono es un valor fijo, la referencia y el monto viajan en referencia/montoPago
-     * (pago de servicios).
-     */
-    String construirPayload(PagoServicioRequest request, ProductoEntity producto) {
-        Integer catTipo = producto.getIdCatTipoServicio();
-        boolean esServicio = (catTipo != null && (catTipo == 10 || catTipo == 11));
+    private GestoPagoToken obtenerToken() {
+        return tokenService.obtenerTokenActivo(idDistribuidor, codigoDispositivo)
+                .orElseThrow(() -> new PagoException(CodigoErrorPago.GESTOPAGO_TOKEN_NO_DISPONIBLE));
+    }
 
-        String telefono;
-        if (esServicio) {
-            telefono = TELEFONO_FIJO_SERVICIOS;
-        } else if (Integer.valueOf(2).equals(producto.getTipoFront())) {
-            telefono = TELEFONO_FIJO_TIPO_FRONT_2;
-        } else {
-            telefono = request.getTelefonoReferencia();
-        }
+    private String bearer(GestoPagoToken token) {
+        return token.getToken().startsWith("Bearer ") ? token.getToken() : "Bearer " + token.getToken();
+    }
 
-        Map<String, Object> payload = new LinkedHashMap<>();
-        payload.put("idProducto", producto.getIdProducto());
-        payload.put("idServicio", producto.getIdServicio());
-        payload.put("telefono", telefono);
-        payload.put("horaLocal", ZonedDateTime.now(ZoneId.of(zonaHoraria)).format(HORA_LOCAL));
-        if (!telefono.equals(request.getTelefonoReferencia())) {
-            payload.put("referencia", request.getTelefonoReferencia());
-            payload.put("montoPago", request.getMonto());
-        }
-        payload.put("upc", generarUpc());
-        payload.put("unidad", unidad);
-
-        try {
-            return objectMapper.writeValueAsString(payload);
-        } catch (JsonProcessingException e) {
-            throw new PagoException(CodigoErrorPago.GESTOPAGO_RESPUESTA_INVALIDA);
-        }
+    private String apiKeyONull() {
+        return apiKey == null || apiKey.isBlank() ? null : apiKey;
     }
 
     String firmar(String payloadJson) {
@@ -145,18 +110,9 @@ public class GestoPagoTxServiceImpl implements GestoPagoTxService {
         try {
             return AesEncryption.encrypt(payloadJson, cryptoIv, cryptoKey);
         } catch (GeneralSecurityException | IllegalArgumentException e) {
-            log.error("No se pudo firmar el payload de sendTx: {}", e.getClass().getSimpleName());
+            log.error("No se pudo firmar el payload: {}", e.getClass().getSimpleName());
             throw new PagoException(CodigoErrorPago.FIRMA_NO_CONFIGURADA);
         }
-    }
-
-    /** Identificador único de operación: 14 caracteres alfanuméricos (timestamp base36 + aleatorio). */
-    String generarUpc() {
-        StringBuilder upc = new StringBuilder(Long.toString(System.currentTimeMillis(), 36).toUpperCase());
-        while (upc.length() < 14) {
-            upc.append(BASE36.charAt(RANDOM.nextInt(BASE36.length())));
-        }
-        return upc.substring(0, 14);
     }
 
     SendTxResponse parsearRespuesta(String rawXml) {
@@ -190,13 +146,19 @@ public class GestoPagoTxServiceImpl implements GestoPagoTxService {
                     .referencia(texto(doc, "REFERENCIA"))
                     .pin(texto(doc, "PIN"))
                     .leyenda(leyenda)
+                    .respuestaCruda(enmascararPin(rawXml))
                     .build();
         } catch (PagoException e) {
             throw e;
         } catch (Exception e) {
-            log.error("No se pudo interpretar la respuesta de sendTx: {}", e.getClass().getSimpleName());
+            log.error("No se pudo interpretar la respuesta de GestoPago: {}", e.getClass().getSimpleName());
             throw new PagoException(CodigoErrorPago.GESTOPAGO_RESPUESTA_INVALIDA);
         }
+    }
+
+    /** El PIN/folio de productos canjeables es sensible: no se guarda en la bitácora. */
+    static String enmascararPin(String xml) {
+        return xml.replaceAll("(?is)<PIN>.*?</PIN>", "<PIN>***</PIN>");
     }
 
     private String texto(Document doc, String tag) {

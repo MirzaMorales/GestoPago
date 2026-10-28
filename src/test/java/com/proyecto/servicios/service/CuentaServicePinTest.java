@@ -76,6 +76,41 @@ class CuentaServicePinTest {
     }
 
     @Test
+    void abonar_cuentaActiva_sumaAlSaldo() {
+        Cuenta cuenta = Cuenta.builder().numeroCuenta(NUMERO)
+                .saldo(new java.math.BigDecimal("100.00")).estatus(com.proyecto.servicios.entity.EstatusCuenta.ACTIVA).build();
+        when(cuentaRepository.findByNumeroCuentaParaActualizar(NUMERO)).thenReturn(Optional.of(cuenta));
+
+        var respuesta = cuentaService.abonar(com.proyecto.servicios.model.request.AbonoCuentaRequest.builder()
+                .numeroCuenta(NUMERO).monto(new java.math.BigDecimal("250.50")).build());
+
+        assertEquals(new java.math.BigDecimal("350.50"), respuesta.getSaldo());
+        assertEquals(new java.math.BigDecimal("350.50"), cuenta.getSaldo());
+        verify(cuentaRepository).save(cuenta);
+    }
+
+    @Test
+    void abonar_cuentaNoActiva_lanzaValidacion() {
+        Cuenta cuenta = Cuenta.builder().numeroCuenta(NUMERO)
+                .saldo(java.math.BigDecimal.ZERO).estatus(com.proyecto.servicios.entity.EstatusCuenta.BLOQUEADA).build();
+        when(cuentaRepository.findByNumeroCuentaParaActualizar(NUMERO)).thenReturn(Optional.of(cuenta));
+
+        assertThrows(ValidacionNegocioException.class, () -> cuentaService.abonar(
+                com.proyecto.servicios.model.request.AbonoCuentaRequest.builder()
+                        .numeroCuenta(NUMERO).monto(java.math.BigDecimal.TEN).build()));
+        verify(cuentaRepository, never()).save(any());
+    }
+
+    @Test
+    void abonar_cuentaInexistente_lanzaNoEncontrada() {
+        when(cuentaRepository.findByNumeroCuentaParaActualizar(NUMERO)).thenReturn(Optional.empty());
+
+        assertThrows(CuentaNoEncontradaException.class, () -> cuentaService.abonar(
+                com.proyecto.servicios.model.request.AbonoCuentaRequest.builder()
+                        .numeroCuenta(NUMERO).monto(java.math.BigDecimal.TEN).build()));
+    }
+
+    @Test
     void establecerPin_cuentaInexistente_lanzaNoEncontrada() {
         when(cuentaRepository.findByNumeroCuenta(NUMERO)).thenReturn(Optional.empty());
 

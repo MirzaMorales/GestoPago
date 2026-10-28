@@ -92,6 +92,41 @@ class ProductoServiceTest {
     }
 
     @Test
+    void testObtenerListaProductosCapturaElPrecioDelCatalogo() {
+        String xml = "<RESPONSE><MENSAJE><CODIGO>01</CODIGO><TEXTO>Operacion realizada con exito</TEXTO></MENSAJE><PRODUCTOS>"
+                + "<producto servicio=\"Telcel\" producto=\"Recarga $10\" idServicio=\"133\" idProducto=\"582\" idCatTipoServicio=\"2\" tipoFront=\"1\" precio=\"10.0\"/>"
+                + "<producto servicio=\"CFE\" producto=\"CFE\" idServicio=\"76\" idProducto=\"205\" idCatTipoServicio=\"5\" tipoFront=\"2\" precio=\"6.0\"/>"
+                + "</PRODUCTOS></RESPONSE>";
+        GestoPagoToken token = new GestoPagoToken();
+        token.setToken("mock_jwt_token");
+        when(tokenService.obtenerTokenActivo(anyInt(), anyString())).thenReturn(Optional.of(token));
+        when(gestoPagoServiceClient.getProductListRaw(anyString())).thenReturn(xml);
+
+        ProductoListResponse response = productoService.obtenerListaProductos();
+
+        assertEquals(0, response.getCodigo());
+        assertEquals(0, new java.math.BigDecimal("10.0").compareTo(response.getProductos().get(0).getPrecio()));
+        assertEquals(0, new java.math.BigDecimal("6.0").compareTo(response.getProductos().get(1).getPrecio()));
+    }
+
+    @Test
+    void testRespuestaSinProductosNoSeGuardaNiSeReportaComoExito() {
+        String xml = "<RESPONSE><MENSAJE><CODIGO>99</CODIGO><TEXTO>Limite diario de consultas alcanzado</TEXTO></MENSAJE></RESPONSE>";
+        GestoPagoToken token = new GestoPagoToken();
+        token.setToken("mock_jwt_token");
+        when(tokenService.obtenerTokenActivo(anyInt(), anyString())).thenReturn(Optional.of(token));
+        when(gestoPagoServiceClient.getProductListRaw(anyString())).thenReturn(xml);
+
+        ProductoListResponse response = productoService.obtenerListaProductos();
+
+        assertEquals(1, response.getCodigo());
+        assertTrue(response.getMensaje().contains("99"));
+        assertTrue(response.getMensaje().contains("Limite diario"));
+        verify(valueOperations, never()).set(anyString(), any(), any());
+        verify(productoRepository, never()).saveAll(any());
+    }
+
+    @Test
     void testObtenerListaProductosRedisFailureTriggersPostgresFallback() {
         String xmlSample = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
                 "<RESPONSE>" +

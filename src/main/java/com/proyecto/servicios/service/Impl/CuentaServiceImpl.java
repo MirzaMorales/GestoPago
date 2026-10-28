@@ -5,6 +5,7 @@ import com.proyecto.servicios.entity.EstatusCuenta;
 import com.proyecto.servicios.exception.CuentaNoEncontradaException;
 import com.proyecto.servicios.exception.ValidacionNegocioException;
 import com.proyecto.servicios.mapper.ClienteMapper;
+import com.proyecto.servicios.model.request.AbonoCuentaRequest;
 import com.proyecto.servicios.model.request.BuscaCuentaRequest;
 import com.proyecto.servicios.model.request.EstablecePinRequest;
 import com.proyecto.servicios.model.response.CuentaResponse;
@@ -53,6 +54,24 @@ public class CuentaServiceImpl implements CuentaService {
     public SaldoResponse obtenerSaldoCuenta(String numeroCuenta) {
         Cuenta cuenta = cuentaRepository.findByNumeroCuenta(numeroCuenta.trim())
                 .orElseThrow(() -> new CuentaNoEncontradaException("No se encontró la cuenta bancaria: " + numeroCuenta));
+        return SaldoResponse.builder()
+                .numeroCuenta(cuenta.getNumeroCuenta())
+                .saldo(cuenta.getSaldo())
+                .estatus(cuenta.getEstatus().name())
+                .build();
+    }
+
+    @Override
+    @Transactional
+    public SaldoResponse abonar(AbonoCuentaRequest request) {
+        String numeroCuenta = request.getNumeroCuenta().trim();
+        Cuenta cuenta = cuentaRepository.findByNumeroCuentaParaActualizar(numeroCuenta)
+                .orElseThrow(() -> new CuentaNoEncontradaException("No se encontró la cuenta bancaria: " + numeroCuenta));
+        if (cuenta.getEstatus() != EstatusCuenta.ACTIVA) {
+            throw new ValidacionNegocioException("Solo se puede abonar a una cuenta activa");
+        }
+        cuenta.setSaldo(cuenta.getSaldo().add(request.getMonto()));
+        cuentaRepository.save(cuenta);
         return SaldoResponse.builder()
                 .numeroCuenta(cuenta.getNumeroCuenta())
                 .saldo(cuenta.getSaldo())

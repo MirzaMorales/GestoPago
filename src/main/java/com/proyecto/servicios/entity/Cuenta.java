@@ -37,6 +37,15 @@ public class Cuenta {
     @Column(name = "pin_autorizacion", length = 100)
     private String pinAutorizacion;
 
+    /** Intentos fallidos consecutivos de PIN; se reinicia al acertar. */
+    @Column(name = "pin_intentos_fallidos", nullable = false)
+    @Builder.Default
+    private Integer pinIntentosFallidos = 0;
+
+    /** Mientras sea futura, la cuenta no acepta verificación de PIN (bloqueo temporal anti fuerza bruta). */
+    @Column(name = "pin_bloqueado_hasta")
+    private OffsetDateTime pinBloqueadoHasta;
+
     @Column(name = "fecha_apertura", nullable = false, updatable = false)
     private OffsetDateTime fechaApertura;
 

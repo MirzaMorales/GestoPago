@@ -1,18 +1,16 @@
 package com.proyecto.servicios.service.Impl;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.proyecto.servicios.client.GestoPagoServiceClient;
 import com.proyecto.servicios.entity.gestopago.GestoPagoToken;
-import com.proyecto.servicios.entity.gestopago.ProductoEntity;
 import com.proyecto.servicios.exception.CodigoErrorPago;
 import com.proyecto.servicios.exception.PagoException;
 import com.proyecto.servicios.model.gestopago.SendTxResponse;
-import com.proyecto.servicios.model.request.PagoServicioRequest;
 import com.proyecto.servicios.service.GestoPagoTokenService;
 import com.proyecto.servicios.util.AesEncryption;
+import feign.FeignException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
@@ -30,9 +28,10 @@ import static org.mockito.Mockito.*;
 
 class GestoPagoTxServiceTest {
 
-    // Llave AES-128 e IV de 16 bytes de prueba (NO son credenciales reales)
-    private static final String KEY = Base64.getEncoder().encodeToString("0123456789abcdef".getBytes());
+    // Llave AES-256 (32 bytes) e IV (16 bytes) de prueba generados para el test; NO son credenciales reales
+    private static final String KEY = Base64.getEncoder().encodeToString("0123456789abcdef0123456789abcdef".getBytes());
     private static final String IV = Base64.getEncoder().encodeToString("fedcba9876543210".getBytes());
+    private static final String PAYLOAD = "{\"idProducto\":582,\"idServicio\":133,\"telefono\":\"5555555551\"}";
 
     @Mock
     private GestoPagoServiceClient client;
@@ -43,71 +42,27 @@ class GestoPagoTxServiceTest {
     @InjectMocks
     private GestoPagoTxServiceImpl service;
 
-    private final ObjectMapper mapper = new ObjectMapper();
-
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        ReflectionTestUtils.setField(service, "objectMapper", mapper);
         ReflectionTestUtils.setField(service, "idDistribuidor", 83);
         ReflectionTestUtils.setField(service, "codigoDispositivo", "DEV");
         ReflectionTestUtils.setField(service, "cryptoKey", KEY);
         ReflectionTestUtils.setField(service, "cryptoIv", IV);
-        ReflectionTestUtils.setField(service, "unidad", "083");
-        ReflectionTestUtils.setField(service, "zonaHoraria", "America/Mexico_City");
+        ReflectionTestUtils.setField(service, "apiKey", "");
     }
 
-    private PagoServicioRequest request(String telefonoReferencia) {
-        return PagoServicioRequest.builder()
-                .numeroCuenta("1234567890123456").pin("1234")
-                .monto(new BigDecimal("100.00")).telefonoReferencia(telefonoReferencia)
-                .idServicio(133).idProducto(582).tipoFront(1).build();
+    private GestoPagoToken token(String valor) {
+        GestoPagoToken token = new GestoPagoToken();
+        token.setToken(valor);
+        return token;
     }
 
-    private ProductoEntity producto(Integer tipoFront, Integer catTipo) {
-        return ProductoEntity.builder().idProducto(582).idServicio(133).tipoFront(tipoFront).idCatTipoServicio(catTipo).build();
+    private void conToken(String valor) {
+        when(tokenService.obtenerTokenActivo(83, "DEV")).thenReturn(Optional.of(token(valor)));
     }
 
-    private JsonNode payload(PagoServicioRequest request, ProductoEntity producto) throws Exception {
-        return mapper.readTree(service.construirPayload(request, producto));
-    }
-
-    @Test
-    void payload_tipoFront1_enviaTelefonoDelRequestSinMontoNiReferencia() throws Exception {
-        JsonNode json = payload(request("5555555551"), producto(1, 1));
-
-        assertEquals("5555555551", json.get("telefono").asText());
-        assertEquals(582, json.get("idProducto").asInt());
-        assertEquals(133, json.get("idServicio").asInt());
-        assertEquals("083", json.get("unidad").asText());
-        assertFalse(json.has("referencia"));
-        assertFalse(json.has("montoPago"));
-        assertTrue(json.get("horaLocal").asText().matches("\\d{14}"));
-    }
-
-    @Test
-    void payload_tipoFront2_telefonoFijoYReferenciaConMonto() throws Exception {
-        JsonNode json = payload(request("ABC123"), producto(2, 1));
-
-        assertEquals("1111111111", json.get("telefono").asText());
-        assertEquals("ABC123", json.get("referencia").asText());
-        assertEquals(0, new BigDecimal("100.00").compareTo(json.get("montoPago").decimalValue()));
-    }
-
-    @Test
-    void payload_catTipoServicio10u11_telefonoConNumeral() throws Exception {
-        assertEquals("#1111111111", payload(request("ABC123"), producto(1, 10)).get("telefono").asText());
-        assertEquals("#1111111111", payload(request("ABC123"), producto(2, 11)).get("telefono").asText());
-    }
-
-    @Test
-    void upc_tiene14CaracteresAlfanumericosYNoSeRepite() {
-        String upc1 = service.generarUpc();
-        String upc2 = service.generarUpc();
-
-        assertTrue(upc1.matches("[0-9A-Z]{14}"));
-        assertNotEquals(upc1, upc2);
-    }
+    // ---------- firma ----------
 
     @Test
     void firmar_cifraAesYSePuedeDescifrar() throws Exception {
@@ -133,27 +88,52 @@ class GestoPagoTxServiceTest {
                 assertThrows(PagoException.class, () -> service.firmar("{}")).getError());
     }
 
+    // ---------- parseo de respuestas ----------
+
     @Test
-    void parsearRespuesta_exitosa_mapeaCampos() {
-        String xml = "<RESPONSE><CODIGO>01</CODIGO><ID_TX>999</ID_TX><NUM_AUTORIZACION>AUT123</NUM_AUTORIZACION>"
-                + "<SALDO>1.5E3</SALDO><COMISION>2.5</COMISION><FECHA>09/11/2010 13:15:26</FECHA>"
-                + "<MONTO>100.0</MONTO><REFERENCIA>ABC123</REFERENCIA></RESPONSE>";
+    void parsearRespuesta_exitosaConEstructuraRealDelProveedor() {
+        String xml = "<?xml version='1.0' encoding='UTF-8'?><RESPONSE><ID_TX>291676393</ID_TX><NUM_AUTORIZACION>65765544</NUM_AUTORIZACION>"
+                + "<SALDO>1.5E3</SALDO><COMISION>2.5</COMISION><FECHA>25/Feb/2022 19:12:37</FECHA><MONTO>300.0</MONTO>"
+                + "<MENSAJE><CODIGO>01</CODIGO><PIN>40919958</PIN><legend><![CDATA[Instrucciones <br> canje]]></legend>"
+                + "<TEXTO>Operacion realizada con exito</TEXTO><REFERENCIA>ABC123</REFERENCIA></MENSAJE></RESPONSE>";
 
         SendTxResponse r = service.parsearRespuesta(xml);
 
         assertTrue(r.isExitoso());
-        assertEquals("999", r.getIdTx());
-        assertEquals("AUT123", r.getNumAutorizacion());
+        assertEquals("291676393", r.getIdTx());
+        assertEquals("65765544", r.getNumAutorizacion());
         assertEquals(0, new BigDecimal("1500").compareTo(r.getSaldo()));
-        assertEquals(0, new BigDecimal("100").compareTo(r.getMonto()));
+        assertEquals(0, new BigDecimal("300").compareTo(r.getMonto()));
+        assertEquals("40919958", r.getPin());
     }
 
     @Test
-    void parsearRespuesta_codigoDistintoDe01_noEsExitosa() {
-        SendTxResponse r = service.parsearRespuesta("<RESPONSE><CODIGO>12</CODIGO><TEXTO>Saldo insuficiente</TEXTO></RESPONSE>");
+    void parsearRespuesta_enmascaraElPinEnLaCopiaParaBitacora() {
+        String xml = "<RESPONSE><MENSAJE><CODIGO>01</CODIGO><PIN>40919958</PIN></MENSAJE></RESPONSE>";
 
+        SendTxResponse r = service.parsearRespuesta(xml);
+
+        assertFalse(r.getRespuestaCruda().contains("40919958"));
+        assertTrue(r.getRespuestaCruda().contains("<PIN>***</PIN>"));
+    }
+
+    @Test
+    void parsearRespuesta_codigo82EsTimeout() {
+        String xml = "<RESPONSE><NUM_AUTORIZACION>-1</NUM_AUTORIZACION><MENSAJE><CODIGO>82</CODIGO>"
+                + "<TEXTO>Tiempo de espera alcanzado, la transacción no ha sido registrada</TEXTO></MENSAJE></RESPONSE>";
+
+        SendTxResponse r = service.parsearRespuesta(xml);
+
+        assertTrue(r.esTimeout());
         assertFalse(r.isExitoso());
-        assertEquals("Saldo insuficiente", r.getLeyenda());
+    }
+
+    @Test
+    void parsearRespuesta_codigo06EsDuplicadoOAplicada() {
+        SendTxResponse r = service.parsearRespuesta("<RESPONSE><MENSAJE><CODIGO>06</CODIGO><TEXTO>Transaccion aplicada anteriormente</TEXTO></MENSAJE></RESPONSE>");
+
+        assertEquals(SendTxResponse.CODIGO_DUPLICADO_O_APLICADA, r.getCodigo());
+        assertEquals("Transaccion aplicada anteriormente", r.getLeyenda());
     }
 
     @Test
@@ -165,54 +145,118 @@ class GestoPagoTxServiceTest {
         }
     }
 
+    // ---------- sendTx ----------
+
     @Test
     void enviarTx_sinToken_lanzaTokenNoDisponible() {
         when(tokenService.obtenerTokenActivo(83, "DEV")).thenReturn(Optional.empty());
 
         assertEquals(CodigoErrorPago.GESTOPAGO_TOKEN_NO_DISPONIBLE,
-                assertThrows(PagoException.class, () -> service.enviarTx(request("5555555551"), producto(1, 1))).getError());
+                assertThrows(PagoException.class, () -> service.enviarTx(PAYLOAD)).getError());
         verifyNoInteractions(client);
     }
 
     @Test
-    void enviarTx_exitoso_enviaFormConRandomYSignedConBearer() {
-        GestoPagoToken token = new GestoPagoToken();
-        token.setToken("tok");
-        when(tokenService.obtenerTokenActivo(83, "DEV")).thenReturn(Optional.of(token));
-        when(client.sendTxRaw(eq("Bearer tok"), any())).thenReturn("<R><CODIGO>01</CODIGO><ID_TX>7</ID_TX></R>");
+    void enviarTx_enviaFormConRandomYSignedCifradoYBearer() throws Exception {
+        conToken("tok");
+        when(client.sendTxRaw(eq("Bearer tok"), any(), any())).thenReturn("<R><CODIGO>01</CODIGO><ID_TX>7</ID_TX></R>");
 
-        SendTxResponse r = service.enviarTx(request("5555555551"), producto(1, 1));
+        SendTxResponse r = service.enviarTx(PAYLOAD);
 
         assertEquals("7", r.getIdTx());
         @SuppressWarnings("unchecked")
-        org.mockito.ArgumentCaptor<MultiValueMap<String, String>> captor = org.mockito.ArgumentCaptor.forClass(MultiValueMap.class);
-        verify(client).sendTxRaw(eq("Bearer tok"), captor.capture());
+        ArgumentCaptor<MultiValueMap<String, String>> captor = ArgumentCaptor.forClass(MultiValueMap.class);
+        verify(client).sendTxRaw(eq("Bearer tok"), eq(null), captor.capture());
         assertNotNull(captor.getValue().getFirst("random"));
-        assertNotNull(captor.getValue().getFirst("signed"));
+        assertEquals(PAYLOAD, AesEncryption.decrypt(captor.getValue().getFirst("signed"), IV, KEY));
     }
 
     @Test
-    void enviarTx_codigoDeError_lanzaRechazadoConDetalle() {
-        GestoPagoToken token = new GestoPagoToken();
-        token.setToken("tok");
-        when(tokenService.obtenerTokenActivo(83, "DEV")).thenReturn(Optional.of(token));
-        when(client.sendTxRaw(any(), any())).thenReturn("<R><CODIGO>12</CODIGO><TEXTO>Rechazada</TEXTO></R>");
+    void enviarTx_conApiKeyConfigurada_laEnviaEnElHeader() {
+        ReflectionTestUtils.setField(service, "apiKey", "mi-api-key");
+        conToken("tok");
+        when(client.sendTxRaw(any(), any(), any())).thenReturn("<R><CODIGO>01</CODIGO></R>");
 
-        PagoException ex = assertThrows(PagoException.class,
-                () -> service.enviarTx(request("5555555551"), producto(1, 1)));
+        service.enviarTx(PAYLOAD);
 
-        assertEquals(CodigoErrorPago.GESTOPAGO_RECHAZADO, ex.getError());
-        assertEquals("CODIGO 12: Rechazada", ex.getDetalle());
+        verify(client).sendTxRaw(eq("Bearer tok"), eq("mi-api-key"), any());
     }
 
     @Test
-    void enviarTx_falloDeRed_lanzaNoDisponible() {
-        GestoPagoToken token = new GestoPagoToken();
-        token.setToken("tok");
-        when(tokenService.obtenerTokenActivo(83, "DEV")).thenReturn(Optional.of(token));
-        when(client.sendTxRaw(any(), any())).thenThrow(mock(feign.FeignException.class));
+    void enviarTx_codigoDeError_devuelveLaRespuestaSinLanzar() {
+        conToken("tok");
+        when(client.sendTxRaw(any(), any(), any())).thenReturn("<R><MENSAJE><CODIGO>12</CODIGO><TEXTO>Rechazada</TEXTO></MENSAJE></R>");
+
+        SendTxResponse r = service.enviarTx(PAYLOAD);
+
+        assertEquals(12, r.getCodigo());
+        assertFalse(r.isExitoso());
+    }
+
+    @Test
+    void enviarTx_tokenVencido403_renuevaYReintentaUnaSolaVez() {
+        conToken("viejo");
+        when(client.sendTxRaw(eq("Bearer viejo"), any(), any())).thenThrow(mock(FeignException.Forbidden.class));
+        doAnswer(inv -> {
+            when(tokenService.obtenerTokenActivo(83, "DEV")).thenReturn(Optional.of(token("nuevo")));
+            return null;
+        }).when(tokenService).renovarTokenForzado();
+        when(client.sendTxRaw(eq("Bearer nuevo"), any(), any())).thenReturn("<R><CODIGO>01</CODIGO></R>");
+
+        SendTxResponse r = service.enviarTx(PAYLOAD);
+
+        assertTrue(r.isExitoso());
+        verify(tokenService, times(1)).renovarTokenForzado();
+        verify(client, times(2)).sendTxRaw(any(), any(), any());
+    }
+
+    @Test
+    void enviarTx_403PersistenteTrasRenovar_lanzaNoDisponible() {
+        conToken("tok");
+        when(client.sendTxRaw(any(), any(), any())).thenThrow(mock(FeignException.Forbidden.class));
 
         assertEquals(CodigoErrorPago.GESTOPAGO_NO_DISPONIBLE,
-                assertThrows(PagoException.class, () -> service.enviarTx(request("5555555551"), producto(1, 1))).getError());
+                assertThrows(PagoException.class, () -> service.enviarTx(PAYLOAD)).getError());
+        verify(client, times(2)).sendTxRaw(any(), any(), any());
+    }
+
+    @Test
+    void enviarTx_falloDeRed_lanzaNoDisponibleSinReintentar() {
+        conToken("tok");
+        when(client.sendTxRaw(any(), any(), any())).thenThrow(mock(FeignException.class));
+
+        assertEquals(CodigoErrorPago.GESTOPAGO_NO_DISPONIBLE,
+                assertThrows(PagoException.class, () -> service.enviarTx(PAYLOAD)).getError());
+        verify(client, times(1)).sendTxRaw(any(), any(), any());
+        verify(tokenService, never()).renovarTokenForzado();
+    }
+
+    // ---------- confirmTx ----------
+
+    @Test
+    void confirmarTx_usaConfirmTxConElMismoPayloadCifrado() throws Exception {
+        conToken("tok");
+        when(client.confirmTxRaw(any(), any(), any())).thenReturn(
+                "<RESPONSE><NUM_AUTORIZACION>100024988</NUM_AUTORIZACION><MENSAJE><CODIGO>06</CODIGO>"
+                        + "<TEXTO>La transaccion fue aplicada exitosamente</TEXTO><ID_TX>291437188</ID_TX></MENSAJE></RESPONSE>");
+
+        SendTxResponse r = service.confirmarTx(PAYLOAD);
+
+        assertEquals(6, r.getCodigo());
+        assertEquals("291437188", r.getIdTx());
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<MultiValueMap<String, String>> captor = ArgumentCaptor.forClass(MultiValueMap.class);
+        verify(client).confirmTxRaw(eq("Bearer tok"), any(), captor.capture());
+        assertEquals(PAYLOAD, AesEncryption.decrypt(captor.getValue().getFirst("signed"), IV, KEY));
+        verify(client, never()).sendTxRaw(any(), any(), any());
+    }
+
+    @Test
+    void confirmarTx_noAplicada_codigo70() {
+        conToken("tok");
+        when(client.confirmTxRaw(any(), any(), any())).thenReturn(
+                "<RESPONSE><NUM_AUTORIZACION>0</NUM_AUTORIZACION><MENSAJE><CODIGO>70</CODIGO><TEXTO>La transaccion no fue aplicada</TEXTO></MENSAJE></RESPONSE>");
+
+        assertEquals(SendTxResponse.CODIGO_NO_APLICADA, service.confirmarTx(PAYLOAD).getCodigo());
     }
 }

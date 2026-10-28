@@ -12,6 +12,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
+
 @Data
 @Builder
 @NoArgsConstructor
@@ -39,6 +41,10 @@ public class ProductoDTO {
 
     @XmlAttribute(name = "tipoFront")
     private Integer tipoFront;
+
+    /** tipoFront 1: precio final a cobrar. tipoFront 2: comisión de la transacción. */
+    @XmlAttribute(name = "precio")
+    private BigDecimal precio;
 
     @XmlElement(name = "legend")
     private String legend;

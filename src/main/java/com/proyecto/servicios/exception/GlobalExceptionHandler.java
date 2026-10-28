@@ -138,6 +138,13 @@ public class GlobalExceptionHandler {
         return response(HttpStatus.BAD_REQUEST, ex.getMessage());
     }
 
+    /** Errores HTTP del proveedor fuera del flujo de pago: nunca se expone ni se registra el mensaje original (puede traer URL o credenciales). */
+    @ExceptionHandler(feign.FeignException.class)
+    public ResponseEntity<GenericResponse<Void>> handleFeignException(feign.FeignException ex) {
+        log.error("Error al comunicarse con GestoPago: status={}", ex.status());
+        return response(HttpStatus.BAD_GATEWAY, "No fue posible comunicarse con el proveedor de pagos");
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<GenericResponse<Void>> handleGeneralException(Exception ex) {
         log.error("Error interno al procesar la solicitud", ex);
