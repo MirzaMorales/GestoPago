@@ -3,6 +3,9 @@ package com.proyecto.servicios.repositorys;
 import com.proyecto.servicios.entity.EstatusTransaccion;
 import com.proyecto.servicios.entity.TransaccionPago;
 import jakarta.persistence.LockModeType;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
@@ -19,6 +22,14 @@ import java.util.Optional;
 public interface TransaccionPagoRepository extends JpaRepository<TransaccionPago, Long> {
 
     Optional<TransaccionPago> findByCuentaIdAndIdempotencyKey(Long cuentaId, String idempotencyKey);
+
+    /** Historial del cliente: transacciones de todas sus cuentas con el estatus indicado (paginado). */
+    @EntityGraph(attributePaths = "cuenta")
+    Page<TransaccionPago> findByCuentaClienteIdAndEstatus(Long clienteId, EstatusTransaccion estatus, Pageable pageable);
+
+    /** Una transacción solo si pertenece al cliente y tiene el estatus indicado. */
+    @EntityGraph(attributePaths = "cuenta")
+    Optional<TransaccionPago> findByIdAndCuentaClienteIdAndEstatus(Long id, Long clienteId, EstatusTransaccion estatus);
 
     /** Bloquea la fila de la transacción para resolverla (confirmar/revertir) sin carreras entre instancias. */
     @Lock(LockModeType.PESSIMISTIC_WRITE)

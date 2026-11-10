@@ -96,7 +96,8 @@ public class GlobalExceptionHandler {
     @ExceptionHandler({
             ClienteNoEncontradoException.class,
             CuentaNoEncontradaException.class,
-            UsuarioNoEncontradoException.class
+            UsuarioNoEncontradoException.class,
+            CompraNoEncontradaException.class
     })
     public ResponseEntity<GenericResponse<Void>> handleNotFoundExceptions(RuntimeException ex) {
         return response(HttpStatus.NOT_FOUND, ex.getMessage());
