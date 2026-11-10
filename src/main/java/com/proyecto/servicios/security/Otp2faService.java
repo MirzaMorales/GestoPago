@@ -109,7 +109,7 @@ public class Otp2faService {
         while (raiz.getCause() != null && raiz.getCause() != raiz) {
             raiz = raiz.getCause();
         }
-        String mensaje = raiz.getMessage() == null ? "" : raiz.getMessage().replaceAll("\s+", " ");
+        String mensaje = raiz.getMessage() == null ? "" : raiz.getMessage().replaceAll("[\r\n\t ]+", " ");
         return raiz.getClass().getSimpleName() + ": " + (mensaje.length() > 300 ? mensaje.substring(0, 300) : mensaje);
     }
 
