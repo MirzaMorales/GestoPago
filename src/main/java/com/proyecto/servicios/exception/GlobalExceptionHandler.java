@@ -175,6 +175,28 @@ public class GlobalExceptionHandler {
         return response(HttpStatus.BAD_GATEWAY, "No fue posible comunicarse con el proveedor de pagos");
     }
 
+    /** Parámetros de ruta, query o header inválidos (@Validated en el controlador). */
+    @ExceptionHandler(jakarta.validation.ConstraintViolationException.class)
+    public ResponseEntity<GenericResponse<Void>> handleConstraintViolation(jakarta.validation.ConstraintViolationException ex) {
+        Map<String, String> errores = new HashMap<>();
+        ex.getConstraintViolations().forEach(v -> {
+            String ruta = v.getPropertyPath().toString();
+            errores.put(ruta.substring(ruta.lastIndexOf('.') + 1), v.getMessage());
+        });
+        return response(HttpStatus.BAD_REQUEST, "Error de validación en la solicitud", errores);
+    }
+
+    /** Validación de parámetros hecha por Spring MVC (controladores sin @Validated). */
+    @ExceptionHandler(org.springframework.web.method.annotation.HandlerMethodValidationException.class)
+    public ResponseEntity<GenericResponse<Void>> handleHandlerMethodValidation(
+            org.springframework.web.method.annotation.HandlerMethodValidationException ex) {
+        Map<String, String> errores = new HashMap<>();
+        ex.getAllValidationResults().forEach(r -> r.getResolvableErrors().forEach(e ->
+                errores.put(r.getMethodParameter().getParameterName() != null
+                        ? r.getMethodParameter().getParameterName() : "parametro", e.getDefaultMessage())));
+        return response(HttpStatus.BAD_REQUEST, "Error de validación en la solicitud", errores);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<GenericResponse<Void>> handleGeneralException(Exception ex) {
         log.error("Error interno al procesar la solicitud", ex);

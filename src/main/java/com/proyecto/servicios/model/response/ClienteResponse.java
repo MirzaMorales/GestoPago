@@ -36,6 +36,9 @@ public class ClienteResponse {
     private Boolean activo;
     private OffsetDateTime fechaCreacion;
     private OffsetDateTime fechaActualizacion;
+    /** Constancia del consentimiento: versión de Términos / Aviso de Privacidad aceptada y fecha. */
+    private String terminosVersion;
+    private OffsetDateTime terminosAceptadosEn;
     private List<CuentaResponse> cuentas;
     private UsuarioResponse usuario;
 }

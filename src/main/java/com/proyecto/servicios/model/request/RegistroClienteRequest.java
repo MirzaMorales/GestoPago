@@ -93,4 +93,14 @@ public class RegistroClienteRequest {
             message = "La contraseña debe contener mínimo 8 caracteres, al menos una mayúscula, una minúscula, un número y un carácter especial"
     )
     private String password;
+
+    /** Consentimiento expreso: Términos y Condiciones y Aviso de Privacidad. */
+    @NotNull(message = "Debes aceptar los Términos y Condiciones y el Aviso de Privacidad")
+    @AssertTrue(message = "Debes aceptar los Términos y Condiciones y el Aviso de Privacidad")
+    private Boolean aceptaTerminos;
+
+    /** Versión de los documentos que el usuario leyó; debe ser la vigente en el servidor. */
+    @NotBlank(message = "La versión de los términos aceptados es obligatoria")
+    @Size(max = 20, message = "La versión de los términos no puede exceder 20 caracteres")
+    private String versionTerminos;
 }

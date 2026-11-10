@@ -70,6 +70,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/auth/login", "/auth/verificar-2fa").permitAll()
                         .requestMatchers("/actuator/health/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/clientes").permitAll()
+                        // Catálogo de domicilios (SEPOMEX): solo lectura, se usa en el registro antes de iniciar sesión.
+                        .requestMatchers(HttpMethod.GET, "/catalogos/**").permitAll()
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-resources/**", "/webjars/**").permitAll()
                         .anyRequest().authenticated()
                 )

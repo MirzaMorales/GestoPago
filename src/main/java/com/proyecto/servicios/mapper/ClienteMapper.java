@@ -120,6 +120,8 @@ public class ClienteMapper {
                 .activo(entity.getActivo())
                 .fechaCreacion(entity.getFechaCreacion())
                 .fechaActualizacion(entity.getFechaActualizacion())
+                .terminosVersion(entity.getTerminosVersion())
+                .terminosAceptadosEn(entity.getTerminosAceptadosEn())
                 .cuentas(entity.getCuentas() != null ?
                         entity.getCuentas().stream().map(this::toCuentaResponse).collect(Collectors.toList()) : Collections.emptyList())
                 .usuario(toUsuarioResponse(entity.getUsuario()))

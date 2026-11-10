@@ -8,14 +8,17 @@ import com.proyecto.servicios.model.request.BuscaClienteRequest;
 import com.proyecto.servicios.model.request.RegistroClienteRequest;
 import com.proyecto.servicios.model.response.ClienteResponse;
 import com.proyecto.servicios.repositorys.*;
+import com.proyecto.servicios.service.CatalogoDomicilioService;
 import com.proyecto.servicios.service.ClienteService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.time.Period;
 import java.util.List;
 import java.util.Random;
@@ -42,6 +45,13 @@ public class ClienteServiceImpl implements ClienteService {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    @Autowired
+    private CatalogoDomicilioService catalogoDomicilio;
+
+    /** Versión vigente de los Términos y Condiciones y del Aviso de Privacidad (la app la muestra y la envía). */
+    @Value("${app.legal.version:2026-11-10}")
+    private String versionTerminosVigente = "2026-11-10";
+
     @Override
     @Transactional
     public ClienteResponse registrarCliente(RegistroClienteRequest request) {
@@ -52,6 +62,18 @@ public class ClienteServiceImpl implements ClienteService {
         int edad = Period.between(request.getFechaNacimiento(), LocalDate.now()).getYears();
         if (edad < 18) {
             throw new ValidacionNegocioException("El cliente debe ser mayor de edad (18 años o más)");
+        }
+
+        // 1.1 El domicilio debe existir en el catálogo nacional de códigos postales (SEPOMEX)
+        catalogoDomicilio.validar(request.getDomicilio());
+
+        // 1.2 Consentimiento de la versión VIGENTE de Términos y Aviso de Privacidad
+        if (!Boolean.TRUE.equals(request.getAceptaTerminos())) {
+            throw new ValidacionNegocioException("Debes aceptar los Términos y Condiciones y el Aviso de Privacidad");
+        }
+        if (!versionTerminosVigente.equals(request.getVersionTerminos())) {
+            throw new ValidacionNegocioException(
+                    "Los Términos y el Aviso de Privacidad se actualizaron; revísalos y acéptalos de nuevo");
         }
 
         // 2. Validar unicidad de CURP, RFC y Correo
@@ -76,6 +98,9 @@ public class ClienteServiceImpl implements ClienteService {
 
         // 4. Crear Cliente
         Cliente cliente = clienteMapper.toClienteEntity(request, domicilioGuardado);
+        // Constancia del consentimiento (Términos y Aviso de Privacidad), ya verificado contra la versión vigente
+        cliente.setTerminosVersion(versionTerminosVigente);
+        cliente.setTerminosAceptadosEn(OffsetDateTime.now());
         Cliente clienteGuardado = clienteRepository.save(cliente);
 
         // 5. Crear Cuenta Bancaria Única
@@ -159,9 +184,10 @@ public class ClienteServiceImpl implements ClienteService {
         cliente.setEmpresa(request.getEmpresa().trim());
         cliente.setIngresoMensual(request.getIngresoMensual());
 
-        // Actualizar Domicilio
+        // Actualizar Domicilio (validado contra el catálogo SEPOMEX)
         Domicilio dom = cliente.getDomicilio();
         if (dom != null && request.getDomicilio() != null) {
+            catalogoDomicilio.validar(request.getDomicilio());
             dom.setCalle(request.getDomicilio().getCalle().trim());
             dom.setNumeroExterior(request.getDomicilio().getNumeroExterior().trim());
             dom.setNumeroInterior(request.getDomicilio().getNumeroInterior() != null ? request.getDomicilio().getNumeroInterior().trim() : null);
