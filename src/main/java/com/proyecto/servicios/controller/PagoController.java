@@ -1,6 +1,8 @@
 package com.proyecto.servicios.controller;
 
 import com.proyecto.servicios.model.GenericResponse;
+import com.proyecto.servicios.model.request.DetalleCompraRequest;
+import com.proyecto.servicios.model.request.HistorialRequest;
 import com.proyecto.servicios.model.request.PagoServicioRequest;
 import com.proyecto.servicios.model.response.CompraResponse;
 import com.proyecto.servicios.model.response.PagoServicioResponse;
@@ -13,9 +15,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -42,23 +41,23 @@ public class PagoController {
         return ResponseEntity.ok(GenericResponse.ok(HttpStatus.OK, "Pago realizado correctamente", resultado));
     }
 
-    /** Historial de compras exitosas del usuario autenticado (paginado, más recientes primero). */
-    @GetMapping("/historial")
+    /** Historial de compras exitosas del usuario autenticado (paginado, más recientes primero). Datos en el body. */
+    @PostMapping("/historial")
     @PreAuthorize("hasRole('CLIENTE')")
     public ResponseEntity<GenericResponse<PaginaResponse<CompraResponse>>> historial(
             Authentication auth,
-            @RequestParam(defaultValue = "0") int pagina,
-            @RequestParam(defaultValue = "20") int tamano) {
+            @Valid @RequestBody(required = false) HistorialRequest request) {
+        HistorialRequest r = request != null ? request : new HistorialRequest();
         return ResponseEntity.ok(GenericResponse.ok(HttpStatus.OK, "Historial de compras",
-                historialService.listar(auth.getName(), pagina, tamano)));
+                historialService.listar(auth.getName(), r.getPagina(), r.getTamano())));
     }
 
-    /** Detalle de una compra exitosa del usuario autenticado. */
-    @GetMapping("/historial/{idTransaccion}")
+    /** Detalle de una compra exitosa del usuario autenticado. El identificador viaja en el body, no en la URL. */
+    @PostMapping("/historial/detalle")
     @PreAuthorize("hasRole('CLIENTE')")
     public ResponseEntity<GenericResponse<CompraResponse>> detalleCompra(
-            Authentication auth, @PathVariable Long idTransaccion) {
+            Authentication auth, @Valid @RequestBody DetalleCompraRequest request) {
         return ResponseEntity.ok(GenericResponse.ok(HttpStatus.OK, "Detalle de la compra",
-                historialService.detalle(auth.getName(), idTransaccion)));
+                historialService.detalle(auth.getName(), request.getIdTransaccion())));
     }
 }
