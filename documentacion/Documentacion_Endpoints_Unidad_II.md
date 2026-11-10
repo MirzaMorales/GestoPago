@@ -348,7 +348,8 @@ Tiempo de espera de `sendTx`: 70 s (el proveedor responde código 82 tras 62 s).
 | `SPRING_DATA_REDIS_URL` | Redis |
 | `APP_JWT_SECRET` | Firma del JWT (32 caracteres o más) |
 | `GESTOPAGO_AUTH_PASSWORD`, `GESTOPAGO_CRYPTO_KEY`, `GESTOPAGO_CRYPTO_IV`, `GESTOPAGO_API_KEY` (opcional) | Proveedor |
-| `SPRING_MAIL_HOST`, `SPRING_MAIL_USERNAME`, `SPRING_MAIL_PASSWORD` | Correo del código 2FA (Gmail con contraseña de aplicación) |
+| `SPRING_MAIL_HOST`, `SPRING_MAIL_PORT`, `SPRING_MAIL_USERNAME`, `SPRING_MAIL_PASSWORD` | Servidor SMTP del código 2FA. **En Render gratis los puertos 25, 465 y 587 están bloqueados** (Gmail no funciona ahí): usar un proveedor SMTP con puerto 2525 (p. ej. Brevo: `smtp-relay.brevo.com`, `2525`). |
+| `APP_2FA_REMITENTE` | Correo remitente visible del código (debe ser un remitente verificado en el proveedor). Si se omite se usa `SPRING_MAIL_USERNAME`. |
 | `APP_ADMIN_CORREO`, `APP_ADMIN_PASSWORD` | Admin inicial |
 | `APP_CORS_ALLOWED_ORIGINS` | Orígenes permitidos para la web |
 | `APP_JWT_EXPIRATION_MS` | Vigencia de la sesión (opcional) |
