@@ -2,6 +2,7 @@ package com.proyecto.servicios.model.gestopago;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.xml.bind.annotation.XmlAccessType;
 import jakarta.xml.bind.annotation.XmlAccessorType;
 import jakarta.xml.bind.annotation.XmlAttribute;
@@ -48,4 +49,13 @@ public class ProductoDTO {
 
     @XmlElement(name = "legend")
     private String legend;
+
+    /** Logo público del servicio (PNG) en GestoPago; se identifica por idServicio y no requiere token. */
+    private static final String LOGO_BASE_URL = "https://gestopago.portalventas.net/sistema/images/gestopago/servicios/";
+
+    /** Calculado a partir de idServicio: no se guarda en Redis ni en la base, así no queda desactualizado. */
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
+    public String getLogoUrl() {
+        return idServicio != null ? LOGO_BASE_URL + idServicio + ".png" : null;
+    }
 }
