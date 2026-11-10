@@ -147,8 +147,8 @@ Requiere token. Cierra la sesión del token enviado. `200` `{mensaje: "Sesión c
 | Método y ruta | Descripción |
 |---|---|
 | `GET /productos/almacenados` | **Recomendado para las apps.** Catálogo desde Redis, con respaldo en PostgreSQL y, si no hay nada, consulta a GestoPago. |
-| `GET /productos` | Consulta en vivo a GestoPago y actualiza Redis y PostgreSQL. |
-| `GET /getProductList` | Igual que `/productos`; pensado para diagnóstico (ver nota). |
+| `GET /productos` | **Solo ADMIN.** Consulta en vivo a GestoPago y actualiza Redis y PostgreSQL. |
+| `GET /getProductList` | **Solo ADMIN.** Igual que `/productos`; pensado para diagnóstico (ver nota). |
 
 Respuesta `200` (objeto directo):
 ```json
@@ -168,6 +168,7 @@ Respuesta `200` (objeto directo):
 - `montoLibre`: `true` en pago de servicios (`tipoFront` 2): el cliente captura el importe. En `false` el importe es el `precio` fijo.
 - `categoria`: "Recargas y tarjetas" (`tipoFront` 1), "Pago de servicios" (`tipoFront` 2) u "Otros". El proveedor solo entrega un número en `idCatTipoServicio`, sin nombre; para agrupar por empresa use `servicio`.
 - Errores: `503` (sin token activo de GestoPago), `502` (GestoPago no respondió o respondió algo inválido).
+- **Límite de consultas al proveedor:** GestoPago permite `getProductList` hasta 3 veces al día y **bloquea la IP** si se excede, por lo que está pensado para guardarse en la base y no para consultarse por cada usuario. El servicio limita las consultas en vivo a 2 por día (`gestopago.catalogo.max-consultas-dia`), cuenta también las fallidas y, agotado el cupo, responde `503` sin llamar al proveedor. Las apps siempre usan `/productos/almacenados`.
 - **Nota:** `GET /getProductList` equivale a `/productos`. El header `Authorization` es siempre el JWT de esta API; solo para diagnóstico se puede forzar un token del proveedor con el header opcional `X-GestoPago-Token`. Las apps usan `/productos/almacenados`.
 
 ### 4.3 Compra de servicios

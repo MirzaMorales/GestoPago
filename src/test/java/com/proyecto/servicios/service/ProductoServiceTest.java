@@ -43,6 +43,8 @@ class ProductoServiceTest {
 
     private ProductoServiceImpl productoService;
 
+    private com.proyecto.servicios.service.LimiteConsultasProveedor limiteConsultas;
+
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
@@ -54,6 +56,9 @@ class ProductoServiceTest {
         ReflectionTestUtils.setField(productoService, "productoRepository", productoRepository);
         ReflectionTestUtils.setField(productoService, "productoMapper", productoMapper);
         ReflectionTestUtils.setField(productoService, "redisTemplate", redisTemplate);
+        limiteConsultas = org.mockito.Mockito.mock(com.proyecto.servicios.service.LimiteConsultasProveedor.class);
+        org.mockito.Mockito.when(limiteConsultas.reservar()).thenReturn(true);
+        ReflectionTestUtils.setField(productoService, "limiteConsultas", limiteConsultas);
         ReflectionTestUtils.setField(productoService, "idDistribuidor", 83);
         ReflectionTestUtils.setField(productoService, "codigoDispositivo", "GPS83-TPV-17");
     }
@@ -237,6 +242,14 @@ class ProductoServiceTest {
         verify(valueOperations, times(1)).set(anyString(), any(), any());
         verify(productoRepository, times(1)).saveAll(any());
     }
+
+    @Test
+    void sinCupoDiarioNoSeLlamaAlProveedor() {
+        org.mockito.Mockito.when(limiteConsultas.reservar()).thenReturn(false);
+
+        var respuesta = productoService.obtenerListaProductos("token");
+
+        org.junit.jupiter.api.Assertions.assertEquals(2, respuesta.getCodigo());
+        org.mockito.Mockito.verifyNoInteractions(gestoPagoServiceClient);
+    }
 }
-
-
