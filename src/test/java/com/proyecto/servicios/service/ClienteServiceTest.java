@@ -52,6 +52,9 @@ class ClienteServiceTest {
     @Mock
     private PasswordEncoder passwordEncoder;
 
+    @Mock
+    private CatalogoDomicilioService catalogoDomicilio;
+
     @InjectMocks
     private ClienteServiceImpl clienteService;
 
@@ -88,7 +91,31 @@ class ClienteServiceTest {
                 .ingresoMensual(new BigDecimal("25000.00"))
                 .password("SecureP@ss123")
                 .domicilio(domReq)
+                .aceptaTerminos(true)
+                .versionTerminos("2026-11-10")
                 .build();
+    }
+
+    @Test
+    void testRegistrarClienteSinAceptarTerminosNoSeGuarda() {
+        request.setAceptaTerminos(false);
+
+        ValidacionNegocioException ex = assertThrows(ValidacionNegocioException.class,
+                () -> clienteService.registrarCliente(request));
+
+        assertTrue(ex.getMessage().contains("Aviso de Privacidad"));
+        verify(clienteRepository, never()).save(any());
+    }
+
+    @Test
+    void testRegistrarClienteConVersionDeTerminosDesactualizadaNoSeGuarda() {
+        request.setVersionTerminos("2020-01-01");
+
+        ValidacionNegocioException ex = assertThrows(ValidacionNegocioException.class,
+                () -> clienteService.registrarCliente(request));
+
+        assertTrue(ex.getMessage().contains("se actualizaron"));
+        verify(clienteRepository, never()).save(any());
     }
 
     @Test
@@ -101,6 +128,9 @@ class ClienteServiceTest {
 
         Domicilio domMock = Domicilio.builder().id(1L).calle("Av. Reforma").build();
         when(domicilioRepository.save(any())).thenReturn(domMock);
+
+        Cliente nuevo = Cliente.builder().nombre("Juan").curp("PEGJ950520HDFRMN01").activo(true).build();
+        when(clienteMapper.toClienteEntity(any(), any())).thenReturn(nuevo);
 
         Cliente cliMock = Cliente.builder().id(10L).nombre("Juan").curp("PEGJ950520HDFRMN01").activo(true).build();
         when(clienteRepository.save(any())).thenReturn(cliMock);
@@ -122,6 +152,10 @@ class ClienteServiceTest {
         ArgumentCaptor<Cuenta> cuentaCaptor = ArgumentCaptor.forClass(Cuenta.class);
         verify(cuentaRepository).save(cuentaCaptor.capture());
         assertEquals(BigDecimal.ZERO, cuentaCaptor.getValue().getSaldo());
+
+        // Constancia del consentimiento guardada en el cliente
+        assertEquals("2026-11-10", nuevo.getTerminosVersion());
+        assertNotNull(nuevo.getTerminosAceptadosEn());
     }
 
     @Test
@@ -134,6 +168,22 @@ class ClienteServiceTest {
         );
 
         assertTrue(exception.getMessage().contains("mayor de edad"));
+        verify(clienteRepository, never()).save(any());
+    }
+
+    @Test
+    void testRegistrarClienteDomicilioFueraDelCatalogoNoSeGuarda() {
+        doThrow(new ValidacionNegocioException(CatalogoDomicilioService.MENSAJE_DOMICILIO_INVALIDO))
+                .when(catalogoDomicilio).validar(any());
+
+        ValidacionNegocioException exception = assertThrows(
+                ValidacionNegocioException.class,
+                () -> clienteService.registrarCliente(request)
+        );
+
+        assertTrue(exception.getMessage().contains("código postal"));
+        verify(catalogoDomicilio).validar(request.getDomicilio());
+        verify(domicilioRepository, never()).save(any());
         verify(clienteRepository, never()).save(any());
     }
 

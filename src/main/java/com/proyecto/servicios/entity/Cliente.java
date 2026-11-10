@@ -83,6 +83,13 @@ public class Cliente {
     @Column(name = "fecha_actualizacion", nullable = false)
     private OffsetDateTime fechaActualizacion;
 
+    /** Versión de los Términos y del Aviso de Privacidad que aceptó el cliente al registrarse. */
+    @Column(name = "terminos_version", length = 20)
+    private String terminosVersion;
+
+    @Column(name = "terminos_aceptados_en")
+    private OffsetDateTime terminosAceptadosEn;
+
     @OneToMany(mappedBy = "cliente", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @Builder.Default
     private List<Cuenta> cuentas = new ArrayList<>();

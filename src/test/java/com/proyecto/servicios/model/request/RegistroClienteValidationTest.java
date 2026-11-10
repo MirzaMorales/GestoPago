@@ -61,6 +61,8 @@ class RegistroClienteValidationTest {
                         .pais("México")
                         .build())
                 .password("SecureP@ss123")
+                .aceptaTerminos(true)
+                .versionTerminos("2026-11-10")
                 .build();
     }
 }

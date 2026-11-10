@@ -46,3 +46,8 @@ bin/
 .env
 .env.*
 !.env.example
+
+# Catálogo SEPOMEX: prohibida su distribución, se carga por ambiente (ver scripts/sepomex/README.md)
+scripts/sepomex/*.csv
+scripts/sepomex/*.txt
+scripts/sepomex/*.zip
