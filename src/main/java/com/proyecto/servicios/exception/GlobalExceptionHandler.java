@@ -112,6 +112,12 @@ public class GlobalExceptionHandler {
         if (ex.getDetalle() != null) {
             detalles.put("detalle", ex.getDetalle());
         }
+        if (error.estadoCompra() != null) {
+            detalles.put("estadoCompra", error.estadoCompra().name());
+        }
+        if (ex.getIdTransaccion() != null) {
+            detalles.put("idTransaccion", String.valueOf(ex.getIdTransaccion()));
+        }
         return response(error.getStatus(), error.getMensaje(), detalles);
     }
 

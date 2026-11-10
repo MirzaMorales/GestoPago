@@ -1,5 +1,6 @@
 package com.proyecto.servicios.model.response;
 
+import com.proyecto.servicios.model.EstadoCompra;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -13,6 +14,8 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 public class PagoServicioResponse {
 
+    /** Siempre EXITOSA en esta respuesta; los demás resultados llegan como error con detalles.estadoCompra. */
+    private EstadoCompra estadoCompra;
     private Long idTransaccion;
     /** true si es la repetición de una solicitud ya completada (misma Idempotency-Key): no se cobró de nuevo. */
     private boolean repetida;

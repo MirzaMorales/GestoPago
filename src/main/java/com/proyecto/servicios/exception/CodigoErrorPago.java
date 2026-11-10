@@ -1,5 +1,6 @@
 package com.proyecto.servicios.exception;
 
+import com.proyecto.servicios.model.EstadoCompra;
 import lombok.Getter;
 import org.springframework.http.HttpStatus;
 
@@ -47,6 +48,20 @@ public enum CodigoErrorPago {
     private final int codigo;
     private final HttpStatus status;
     private final String mensaje;
+
+    /**
+     * Cómo debe presentarse al cliente este error: rechazada (no se cobró), pendiente (resultado por confirmar)
+     * o error de comunicación. null para errores que no son el resultado de una compra (conciliación).
+     */
+    public EstadoCompra estadoCompra() {
+        return switch (this) {
+            case GESTOPAGO_TIMEOUT, PAGO_EN_PROCESO -> EstadoCompra.PENDIENTE;
+            case GESTOPAGO_NO_DISPONIBLE, GESTOPAGO_RESPUESTA_INVALIDA, GESTOPAGO_TOKEN_NO_DISPONIBLE,
+                 FIRMA_NO_CONFIGURADA, PRECIO_NO_DISPONIBLE -> EstadoCompra.ERROR_COMUNICACION;
+            case TRANSACCION_NO_ENCONTRADA, TRANSACCION_NO_CONCILIABLE -> null;
+            default -> EstadoCompra.RECHAZADA;
+        };
+    }
 
     CodigoErrorPago(int codigo, HttpStatus status, String mensaje) {
         this.codigo = codigo;

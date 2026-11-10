@@ -11,6 +11,7 @@ import com.proyecto.servicios.model.response.JwtAuthResponse;
 import com.proyecto.servicios.model.response.Login2faResponse;
 import com.proyecto.servicios.repositorys.UsuarioRepository;
 import com.proyecto.servicios.security.JwtTokenProvider;
+import com.proyecto.servicios.security.LoginIntentosService;
 import com.proyecto.servicios.security.Otp2faService;
 import com.proyecto.servicios.security.SesionService;
 import com.proyecto.servicios.service.AuthService;
@@ -37,20 +38,31 @@ public class AuthServiceImpl implements AuthService {
     @Autowired
     private Otp2faService otp2faService;
 
+    @Autowired
+    private LoginIntentosService loginIntentos;
+
     /** Paso 1: valida credenciales y la sesión única, y envía el código 2FA por correo. No entrega token. */
     @Override
     @Transactional(readOnly = true)
     public Login2faResponse login(LoginRequest request) {
         String correo = request.getCorreo().trim().toLowerCase();
 
-        Usuario usuario = usuarioRepository.findByCorreo(correo)
-                .orElseThrow(() -> new CredencialesInvalidasException("Credenciales de acceso inválidas"));
+        loginIntentos.verificarNoBloqueado(correo);
 
-        validarUsuarioActivo(usuario);
-
-        if (!passwordEncoder.matches(request.getPassword(), usuario.getPassword())) {
+        Usuario usuario = usuarioRepository.findByCorreo(correo).orElse(null);
+        if (usuario == null) {
+            loginIntentos.registrarFallo(correo);
             throw new CredencialesInvalidasException("Credenciales de acceso inválidas");
         }
+
+        // La contraseña se valida primero: un usuario inactivo no debe poder detectarse sin conocer sus credenciales.
+        if (!passwordEncoder.matches(request.getPassword(), usuario.getPassword())) {
+            loginIntentos.registrarFallo(correo);
+            throw new CredencialesInvalidasException("Credenciales de acceso inválidas");
+        }
+        loginIntentos.limpiar(correo);
+
+        validarUsuarioActivo(usuario);
 
         String plataforma = request.getPlataforma() != null ? request.getPlataforma() : "WEB";
         boolean cerrarAnterior = Boolean.TRUE.equals(request.getCerrarSesionAnterior());

@@ -3,6 +3,7 @@ package com.proyecto.servicios.service.Impl;
 import com.proyecto.servicios.entity.Rol;
 import com.proyecto.servicios.entity.Usuario;
 import com.proyecto.servicios.exception.CredencialesInvalidasException;
+import com.proyecto.servicios.exception.DemasiadosIntentosException;
 import com.proyecto.servicios.exception.SesionActivaException;
 import com.proyecto.servicios.model.request.LoginRequest;
 import com.proyecto.servicios.model.request.Verificacion2faRequest;
@@ -10,6 +11,7 @@ import com.proyecto.servicios.model.response.JwtAuthResponse;
 import com.proyecto.servicios.model.response.Login2faResponse;
 import com.proyecto.servicios.repositorys.UsuarioRepository;
 import com.proyecto.servicios.security.JwtTokenProvider;
+import com.proyecto.servicios.security.LoginIntentosService;
 import com.proyecto.servicios.security.Otp2faService;
 import com.proyecto.servicios.security.SesionService;
 import org.junit.jupiter.api.BeforeEach;
@@ -32,6 +34,7 @@ class AuthServiceImplTest {
     @Mock private JwtTokenProvider jwtTokenProvider;
     @Mock private SesionService sesionService;
     @Mock private Otp2faService otp2faService;
+    @Mock private LoginIntentosService loginIntentos;
     @InjectMocks private AuthServiceImpl service;
 
     private Usuario admin;
@@ -70,6 +73,35 @@ class AuthServiceImplTest {
 
         assertThrows(CredencialesInvalidasException.class, () -> service.login(login("WEB", null)));
         verifyNoInteractions(otp2faService);
+        verify(loginIntentos).registrarFallo("admin@example.com");
+    }
+
+    @Test
+    void correoInexistenteTambienCuentaComoFallo() {
+        when(usuarioRepository.findByCorreo("admin@example.com")).thenReturn(Optional.empty());
+
+        assertThrows(CredencialesInvalidasException.class, () -> service.login(login("WEB", null)));
+        verify(loginIntentos).registrarFallo("admin@example.com");
+    }
+
+    @Test
+    void correoBloqueadoNoLlegaANiSiquieraAConsultarElUsuario() {
+        doThrow(new DemasiadosIntentosException("bloqueado")).when(loginIntentos).verificarNoBloqueado("admin@example.com");
+
+        assertThrows(DemasiadosIntentosException.class, () -> service.login(login("WEB", null)));
+        verifyNoInteractions(usuarioRepository, otp2faService);
+    }
+
+    @Test
+    void loginCorrectoLimpiaLosFallos() {
+        when(usuarioRepository.findByCorreo("admin@example.com")).thenReturn(Optional.of(admin));
+        when(passwordEncoder.matches("Clave#123", "hash")).thenReturn(true);
+        when(otp2faService.crear(any(), any(), any(), anyBoolean()))
+                .thenReturn(new Otp2faService.Desafio("d-1", "a***@example.com", 300));
+
+        service.login(login("WEB", null));
+
+        verify(loginIntentos).limpiar("admin@example.com");
     }
 
     @Test
@@ -95,5 +127,15 @@ class AuthServiceImplTest {
 
         assertEquals("jwt", r.getAccessToken());
         assertEquals("ADMIN", r.getRol());
+    }
+
+    @Test
+    void unUsuarioInactivoNoSeDelataSinConocerLaContrasena() {
+        admin.setActivo(false);
+        when(usuarioRepository.findByCorreo("admin@example.com")).thenReturn(Optional.of(admin));
+        when(passwordEncoder.matches(any(), any())).thenReturn(false);
+
+        // con contraseña incorrecta se responde igual que si el correo no existiera (401), no 403 "inactivo"
+        assertThrows(CredencialesInvalidasException.class, () -> service.login(login("WEB", null)));
     }
 }

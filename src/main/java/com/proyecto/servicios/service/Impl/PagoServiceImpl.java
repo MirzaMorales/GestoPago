@@ -2,6 +2,7 @@ package com.proyecto.servicios.service.Impl;
 
 import com.proyecto.servicios.exception.CodigoErrorPago;
 import com.proyecto.servicios.exception.PagoException;
+import com.proyecto.servicios.model.EstadoCompra;
 import com.proyecto.servicios.model.gestopago.SendTxResponse;
 import com.proyecto.servicios.model.request.PagoServicioRequest;
 import com.proyecto.servicios.model.response.PagoServicioResponse;
@@ -60,7 +61,7 @@ public class PagoServiceImpl implements PagoService {
             if (RESULTADO_INCIERTO.contains(e.getError())) {
                 log.error("Resultado incierto en transacción {}: {}", id, e.getError());
                 transaccionService.marcarEnRevision(id, "sendTx: " + e.getError().name() + "; pendiente de confirmTx");
-                throw new PagoException(e.getError(), detalleEnRevision(id));
+                throw new PagoException(e.getError(), detalleEnRevision(id), id);
             }
             // Fallo previo al envío (token, firma): el proveedor no recibió nada, se devuelve el saldo
             transaccionService.revertir(id, e.getError().name());
@@ -81,7 +82,7 @@ public class PagoServiceImpl implements PagoService {
         }
         if (respuesta.esTimeout()) {
             transaccionService.marcarEnRevision(id, "sendTx: tiempo de espera (82); pendiente de confirmTx");
-            throw new PagoException(CodigoErrorPago.GESTOPAGO_TIMEOUT, detalleEnRevision(id));
+            throw new PagoException(CodigoErrorPago.GESTOPAGO_TIMEOUT, detalleEnRevision(id), id);
         }
         if (Integer.valueOf(SendTxResponse.CODIGO_DUPLICADO_O_APLICADA).equals(codigo)) {
             transaccionService.revertir(id, "GestoPago: operación aplicada anteriormente (código 06)");
@@ -107,6 +108,7 @@ public class PagoServiceImpl implements PagoService {
 
     private PagoServicioResponse respuestaExitosa(PagoServicioRequest request, Reserva reserva, SendTxResponse respuesta, BigDecimal saldoRestante) {
         return PagoServicioResponse.builder()
+                .estadoCompra(EstadoCompra.EXITOSA)
                 .idTransaccion(reserva.transaccionId())
                 .numeroCuenta(request.getNumeroCuenta())
                 .monto(request.getMonto())
@@ -128,6 +130,7 @@ public class PagoServiceImpl implements PagoService {
     private PagoServicioResponse respuestaDeRepeticion(PagoServicioRequest request, Reserva reserva) {
         var previo = reserva.repeticion();
         return PagoServicioResponse.builder()
+                .estadoCompra(EstadoCompra.EXITOSA)
                 .idTransaccion(reserva.transaccionId())
                 .repetida(true)
                 .numeroCuenta(request.getNumeroCuenta())

@@ -5,7 +5,9 @@ import com.proyecto.servicios.entity.TransaccionPago;
 import com.proyecto.servicios.entity.gestopago.ProductoEntity;
 import com.proyecto.servicios.exception.CompraNoEncontradaException;
 import com.proyecto.servicios.exception.ValidacionNegocioException;
+import com.proyecto.servicios.model.EstadoCompra;
 import com.proyecto.servicios.model.response.CompraResponse;
+import com.proyecto.servicios.model.response.EstadoCompraResponse;
 import com.proyecto.servicios.model.response.PaginaResponse;
 import com.proyecto.servicios.repositorys.TransaccionPagoRepository;
 import com.proyecto.servicios.repositorys.UsuarioRepository;
@@ -78,6 +80,22 @@ public class HistorialServiceImpl implements HistorialService {
                 .map(p -> Map.of(p.getIdProducto(), p.getProducto()))
                 .orElse(Map.of());
         return aCompra(t, nombres);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public EstadoCompraResponse estado(String correoUsuario, Long idTransaccion) {
+        Long clienteId = clienteIdDe(correoUsuario);
+        TransaccionPago t = transaccionRepository.findByIdAndCuentaClienteId(idTransaccion, clienteId)
+                .orElseThrow(() -> new CompraNoEncontradaException(idTransaccion));
+        EstadoCompra estado = EstadoCompra.de(t.getEstatus());
+        String mensaje = switch (estado) {
+            case EXITOSA -> "La compra se realizó correctamente";
+            case RECHAZADA -> "La compra no se realizó; el saldo no fue descontado o ya fue devuelto";
+            default -> "La compra sigue en proceso; el monto permanece retenido hasta confirmar con GestoPago";
+        };
+        return EstadoCompraResponse.builder()
+                .idTransaccion(t.getId()).estadoCompra(estado).mensaje(mensaje).build();
     }
 
     private Long clienteIdDe(String correoUsuario) {
