@@ -17,7 +17,7 @@ public class JwtTokenProvider {
     @Value("${app.jwt.secret}")
     private String jwtSecret;
 
-    @Value("${app.jwt.expiration-ms:86400000}")
+    @Value("${app.jwt.expiration-ms:3600000}")
     private long jwtExpirationInMs;
 
     private SecretKey getSigningKey() {
@@ -25,11 +25,12 @@ public class JwtTokenProvider {
         return Keys.hmacShaKeyFor(keyBytes);
     }
 
-    public String generateToken(String correo, Long usuarioId, Long clienteId) {
+    public String generateToken(String correo, Long usuarioId, Long clienteId, String jti) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + jwtExpirationInMs);
 
         return Jwts.builder()
+                .setId(jti)
                 .setSubject(correo)
                 .claim("usuarioId", usuarioId)
                 .claim("clienteId", clienteId)
@@ -39,13 +40,26 @@ public class JwtTokenProvider {
                 .compact();
     }
 
-    public String getCorreoFromToken(String token) {
-        Claims claims = Jwts.parserBuilder()
+    private Claims claims(String token) {
+        return Jwts.parserBuilder()
                 .setSigningKey(getSigningKey())
                 .build()
                 .parseClaimsJws(token)
                 .getBody();
-        return claims.getSubject();
+    }
+
+    public String getCorreoFromToken(String token) {
+        return claims(token).getSubject();
+    }
+
+    /** Identificador único de la sesión; null en tokens emitidos antes de existir el control de sesiones. */
+    public String getJtiFromToken(String token) {
+        return claims(token).getId();
+    }
+
+    public Long getUsuarioIdFromToken(String token) {
+        Number id = claims(token).get("usuarioId", Number.class);
+        return id != null ? id.longValue() : null;
     }
 
     public boolean validateToken(String token) {

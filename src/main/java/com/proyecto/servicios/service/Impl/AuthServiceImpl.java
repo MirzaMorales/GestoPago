@@ -8,6 +8,7 @@ import com.proyecto.servicios.model.request.LoginRequest;
 import com.proyecto.servicios.model.response.JwtAuthResponse;
 import com.proyecto.servicios.repositorys.UsuarioRepository;
 import com.proyecto.servicios.security.JwtTokenProvider;
+import com.proyecto.servicios.security.SesionService;
 import com.proyecto.servicios.service.AuthService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -25,6 +26,9 @@ public class AuthServiceImpl implements AuthService {
 
     @Autowired
     private JwtTokenProvider jwtTokenProvider;
+
+    @Autowired
+    private SesionService sesionService;
 
     @Override
     @Transactional(readOnly = true)
@@ -48,7 +52,10 @@ public class AuthServiceImpl implements AuthService {
         }
 
         Long clienteId = usuario.getCliente() != null ? usuario.getCliente().getId() : null;
-        String token = jwtTokenProvider.generateToken(usuario.getCorreo(), usuario.getId(), clienteId);
+        String plataforma = request.getPlataforma() != null ? request.getPlataforma() : "WEB";
+        String jti = sesionService.iniciar(usuario.getId(), plataforma,
+                Boolean.TRUE.equals(request.getCerrarSesionAnterior()));
+        String token = jwtTokenProvider.generateToken(usuario.getCorreo(), usuario.getId(), clienteId, jti);
 
         return JwtAuthResponse.builder()
                 .accessToken(token)
@@ -56,6 +63,12 @@ public class AuthServiceImpl implements AuthService {
                 .correo(usuario.getCorreo())
                 .usuarioId(usuario.getId())
                 .clienteId(clienteId)
+                .rol(usuario.getRol().name())
                 .build();
+    }
+
+    @Override
+    public void logout(String jwt) {
+        sesionService.cerrar(jwtTokenProvider.getUsuarioIdFromToken(jwt), jwtTokenProvider.getJtiFromToken(jwt));
     }
 }

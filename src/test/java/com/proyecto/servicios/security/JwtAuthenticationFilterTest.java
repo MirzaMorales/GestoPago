@@ -27,6 +27,9 @@ class JwtAuthenticationFilterTest {
     @Mock
     private UsuarioRepository usuarioRepository;
 
+    @Mock
+    private SesionService sesionService;
+
     @InjectMocks
     private JwtAuthenticationFilter filter;
 
@@ -48,7 +51,11 @@ class JwtAuthenticationFilterTest {
     void acceptsTokenOnlyForAnActiveUserWithAnActiveClient() throws Exception {
         when(tokenProvider.validateToken("jwt")).thenReturn(true);
         when(tokenProvider.getCorreoFromToken("jwt")).thenReturn("cliente@example.com");
-        when(usuarioRepository.findActiveByCorreo("cliente@example.com")).thenReturn(Optional.of(new Usuario()));
+        when(tokenProvider.getJtiFromToken("jwt")).thenReturn("jti-1");
+        Usuario usuario = new Usuario();
+        usuario.setId(7L);
+        when(usuarioRepository.findActiveByCorreo("cliente@example.com")).thenReturn(Optional.of(usuario));
+        when(sesionService.esVigente(7L, "jti-1")).thenReturn(true);
         MockHttpServletRequest request = authorizedRequest();
 
         filter.doFilter(request, new MockHttpServletResponse(), mock(FilterChain.class));
@@ -61,6 +68,36 @@ class JwtAuthenticationFilterTest {
         when(tokenProvider.validateToken("jwt")).thenReturn(true);
         when(tokenProvider.getCorreoFromToken("jwt")).thenReturn("cliente@example.com");
         when(usuarioRepository.findActiveByCorreo("cliente@example.com")).thenReturn(Optional.empty());
+
+        filter.doFilter(authorizedRequest(), new MockHttpServletResponse(), mock(FilterChain.class));
+
+        assertNull(SecurityContextHolder.getContext().getAuthentication());
+    }
+
+    @Test
+    void rejectsTokenWhenItsSessionWasReplacedByAnotherLogin() throws Exception {
+        when(tokenProvider.validateToken("jwt")).thenReturn(true);
+        when(tokenProvider.getCorreoFromToken("jwt")).thenReturn("cliente@example.com");
+        when(tokenProvider.getJtiFromToken("jwt")).thenReturn("jti-viejo");
+        Usuario usuario = new Usuario();
+        usuario.setId(7L);
+        when(usuarioRepository.findActiveByCorreo("cliente@example.com")).thenReturn(Optional.of(usuario));
+        when(sesionService.esVigente(7L, "jti-viejo")).thenReturn(false);
+
+        filter.doFilter(authorizedRequest(), new MockHttpServletResponse(), mock(FilterChain.class));
+
+        assertNull(SecurityContextHolder.getContext().getAuthentication());
+    }
+
+    @Test
+    void rejectsTokenWhenSessionStoreIsUnavailable() throws Exception {
+        when(tokenProvider.validateToken("jwt")).thenReturn(true);
+        when(tokenProvider.getCorreoFromToken("jwt")).thenReturn("cliente@example.com");
+        when(tokenProvider.getJtiFromToken("jwt")).thenReturn("jti-1");
+        Usuario usuario = new Usuario();
+        usuario.setId(7L);
+        when(usuarioRepository.findActiveByCorreo("cliente@example.com")).thenReturn(Optional.of(usuario));
+        when(sesionService.esVigente(7L, "jti-1")).thenThrow(new IllegalStateException("redis caído"));
 
         filter.doFilter(authorizedRequest(), new MockHttpServletResponse(), mock(FilterChain.class));
 
