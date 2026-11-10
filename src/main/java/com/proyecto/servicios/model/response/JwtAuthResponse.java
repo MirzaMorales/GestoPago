@@ -16,4 +16,6 @@ public class JwtAuthResponse {
     private String correo;
     private Long usuarioId;
     private Long clienteId;
+    /** ADMIN o CLIENTE: el frontend lo usa para decidir qué vistas mostrar. */
+    private String rol;
 }

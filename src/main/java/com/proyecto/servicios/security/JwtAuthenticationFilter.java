@@ -29,6 +29,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     @Autowired
     private UsuarioRepository usuarioRepository;
 
+    @Autowired
+    private SesionService sesionService;
+
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
@@ -37,7 +40,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         if (StringUtils.hasText(jwt) && tokenProvider.validateToken(jwt)) {
             String correo = tokenProvider.getCorreoFromToken(jwt);
             Optional<Usuario> usuario = usuarioRepository.findActiveByCorreo(correo);
-            if (usuario.isPresent()) {
+            if (usuario.isPresent() && sesionVigente(jwt, usuario.get())) {
                 Rol rol = usuario.get().getRol() != null ? usuario.get().getRol() : Rol.CLIENTE;
                 UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
                         correo, null, List.of(new SimpleGrantedAuthority("ROLE_" + rol.name())));
@@ -48,6 +51,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    /** El token solo sirve mientras su jti sea la sesión activa del usuario; si Redis falla se rechaza. */
+    private boolean sesionVigente(String jwt, Usuario usuario) {
+        try {
+            return sesionService.esVigente(usuario.getId(), tokenProvider.getJtiFromToken(jwt));
+        } catch (RuntimeException ex) {
+            logger.error("No fue posible validar la sesión activa", ex);
+            return false;
+        }
     }
 
     private String getJwtFromRequest(HttpServletRequest request) {

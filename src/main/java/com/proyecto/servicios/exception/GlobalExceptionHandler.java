@@ -119,6 +119,14 @@ public class GlobalExceptionHandler {
         return response(HttpStatus.FORBIDDEN, "No tiene permisos para acceder a este recurso");
     }
 
+    @ExceptionHandler(SesionActivaException.class)
+    public ResponseEntity<GenericResponse<Void>> handleSesionActiva(SesionActivaException ex) {
+        Map<String, String> detalles = new HashMap<>();
+        detalles.put("error", "SESION_ACTIVA");
+        detalles.put("plataformaActiva", ex.getPlataformaActiva());
+        return response(HttpStatus.CONFLICT, ex.getMessage(), detalles);
+    }
+
     @ExceptionHandler(UsuarioInactivoException.class)
     public ResponseEntity<GenericResponse<Void>> handleUsuarioInactivoException(UsuarioInactivoException ex) {
         return response(HttpStatus.FORBIDDEN, ex.getMessage());

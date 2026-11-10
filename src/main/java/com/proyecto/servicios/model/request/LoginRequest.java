@@ -2,6 +2,7 @@ package com.proyecto.servicios.model.request;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -21,4 +22,11 @@ public class LoginRequest {
 
     @NotBlank(message = "La contraseña es obligatoria")
     private String password;
+
+    /** Plataforma desde la que se inicia sesión: WEB o MOVIL. Si se omite se asume WEB. */
+    @Pattern(regexp = "WEB|MOVIL", message = "La plataforma debe ser WEB o MOVIL")
+    private String plataforma;
+
+    /** true para cerrar la sesión activa en otra plataforma y abrir esta. */
+    private Boolean cerrarSesionAnterior;
 }
