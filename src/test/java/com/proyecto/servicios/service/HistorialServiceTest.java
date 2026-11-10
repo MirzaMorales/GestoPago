@@ -8,6 +8,7 @@ import com.proyecto.servicios.entity.Usuario;
 import com.proyecto.servicios.entity.gestopago.ProductoEntity;
 import com.proyecto.servicios.exception.CompraNoEncontradaException;
 import com.proyecto.servicios.exception.ValidacionNegocioException;
+import com.proyecto.servicios.model.EstadoCompra;
 import com.proyecto.servicios.model.response.CompraResponse;
 import com.proyecto.servicios.model.response.PaginaResponse;
 import com.proyecto.servicios.repositorys.TransaccionPagoRepository;
@@ -107,5 +108,23 @@ class HistorialServiceTest {
         when(usuarioRepository.findByCorreo("admin@example.com")).thenReturn(Optional.of(admin));
 
         assertThrows(ValidacionNegocioException.class, () -> service.listar("admin@example.com", 0, 20));
+    }
+
+    @Test
+    void estadoDeUnaCompraEnRevisionEsPendiente() {
+        compra.setEstatus(EstatusTransaccion.EN_REVISION);
+        when(transaccionRepository.findByIdAndCuentaClienteId(99L, 10L)).thenReturn(Optional.of(compra));
+
+        assertEquals(EstadoCompra.PENDIENTE, service.estado("cliente@example.com", 99L).getEstadoCompra());
+    }
+
+    @Test
+    void estadoDeUnaCompraFallidaEsRechazadaYDeUnaAjenaNoSeEncuentra() {
+        compra.setEstatus(EstatusTransaccion.FALLIDA);
+        when(transaccionRepository.findByIdAndCuentaClienteId(99L, 10L)).thenReturn(Optional.of(compra));
+        when(transaccionRepository.findByIdAndCuentaClienteId(5L, 10L)).thenReturn(Optional.empty());
+
+        assertEquals(EstadoCompra.RECHAZADA, service.estado("cliente@example.com", 99L).getEstadoCompra());
+        assertThrows(CompraNoEncontradaException.class, () -> service.estado("cliente@example.com", 5L));
     }
 }

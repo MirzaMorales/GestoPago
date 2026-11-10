@@ -27,6 +27,9 @@ public interface TransaccionPagoRepository extends JpaRepository<TransaccionPago
     @EntityGraph(attributePaths = "cuenta")
     Page<TransaccionPago> findByCuentaClienteIdAndEstatus(Long clienteId, EstatusTransaccion estatus, Pageable pageable);
 
+    /** Una transacción del cliente, sin importar su estatus. */
+    Optional<TransaccionPago> findByIdAndCuentaClienteId(Long id, Long clienteId);
+
     /** Una transacción solo si pertenece al cliente y tiene el estatus indicado. */
     @EntityGraph(attributePaths = "cuenta")
     Optional<TransaccionPago> findByIdAndCuentaClienteIdAndEstatus(Long id, Long clienteId, EstatusTransaccion estatus);

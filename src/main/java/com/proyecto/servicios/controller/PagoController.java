@@ -5,6 +5,7 @@ import com.proyecto.servicios.model.request.DetalleCompraRequest;
 import com.proyecto.servicios.model.request.HistorialRequest;
 import com.proyecto.servicios.model.request.PagoServicioRequest;
 import com.proyecto.servicios.model.response.CompraResponse;
+import com.proyecto.servicios.model.response.EstadoCompraResponse;
 import com.proyecto.servicios.model.response.PagoServicioResponse;
 import com.proyecto.servicios.model.response.PaginaResponse;
 import com.proyecto.servicios.service.HistorialService;
@@ -59,5 +60,14 @@ public class PagoController {
             Authentication auth, @Valid @RequestBody DetalleCompraRequest request) {
         return ResponseEntity.ok(GenericResponse.ok(HttpStatus.OK, "Detalle de la compra",
                 historialService.detalle(auth.getName(), request.getIdTransaccion())));
+    }
+
+    /** Estado actual de una compra del usuario (útil para saber en qué terminó una compra pendiente). Id en el body. */
+    @PostMapping("/estado")
+    @PreAuthorize("hasRole('CLIENTE')")
+    public ResponseEntity<GenericResponse<EstadoCompraResponse>> estadoCompra(
+            Authentication auth, @Valid @RequestBody DetalleCompraRequest request) {
+        return ResponseEntity.ok(GenericResponse.ok(HttpStatus.OK, "Estado de la compra",
+                historialService.estado(auth.getName(), request.getIdTransaccion())));
     }
 }
