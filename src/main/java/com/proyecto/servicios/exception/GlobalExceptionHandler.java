@@ -119,6 +119,21 @@ public class GlobalExceptionHandler {
         return response(HttpStatus.FORBIDDEN, "No tiene permisos para acceder a este recurso");
     }
 
+    @ExceptionHandler(Codigo2faInvalidoException.class)
+    public ResponseEntity<GenericResponse<Void>> handleCodigo2faInvalido(Codigo2faInvalidoException ex) {
+        return response(HttpStatus.UNAUTHORIZED, ex.getMessage());
+    }
+
+    @ExceptionHandler(DemasiadosIntentosException.class)
+    public ResponseEntity<GenericResponse<Void>> handleDemasiadosIntentos(DemasiadosIntentosException ex) {
+        return response(HttpStatus.TOO_MANY_REQUESTS, ex.getMessage());
+    }
+
+    @ExceptionHandler(CorreoNoDisponibleException.class)
+    public ResponseEntity<GenericResponse<Void>> handleCorreoNoDisponible(CorreoNoDisponibleException ex) {
+        return response(HttpStatus.SERVICE_UNAVAILABLE, ex.getMessage());
+    }
+
     @ExceptionHandler(SesionActivaException.class)
     public ResponseEntity<GenericResponse<Void>> handleSesionActiva(SesionActivaException ex) {
         Map<String, String> detalles = new HashMap<>();
