@@ -7,6 +7,7 @@ import com.proyecto.servicios.model.gestopago.ProductoDTO;
 import com.proyecto.servicios.model.gestopago.ProductoListResponse;
 import com.proyecto.servicios.repositorys.gestopago.ProductoRepository;
 import com.proyecto.servicios.service.GestoPagoTokenService;
+import com.proyecto.servicios.service.LimiteConsultasProveedor;
 import com.proyecto.servicios.service.ProductoService;
 import com.proyecto.servicios.mapper.ProductoMapper;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -55,6 +56,9 @@ public class ProductoServiceImpl implements ProductoService {
     @Autowired
     private ObjectMapper objectMapper;
 
+    @Autowired
+    private LimiteConsultasProveedor limiteConsultas;
+
     @Value("${gestopago.auth.id-distribuidor}")
     private Integer idDistribuidor;
 
@@ -80,6 +84,14 @@ public class ProductoServiceImpl implements ProductoService {
 
     @Override
     public ProductoListResponse obtenerListaProductos(String token) {
+        // El proveedor bloquea la IP si getProductList se llama más de 3 veces al día: se limita antes de cada consulta.
+        if (!limiteConsultas.reservar()) {
+            return ProductoListResponse.builder()
+                    .codigo(2)
+                    .mensaje("Se alcanzó el límite diario de consultas al proveedor; use /productos/almacenados")
+                    .productos(new ArrayList<>())
+                    .build();
+        }
         try {
             log.info("Consultando getProductList en GestoPago API");
             String authHeader = token.startsWith("Bearer ") ? token : "Bearer " + token;
