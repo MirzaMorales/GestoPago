@@ -17,7 +17,9 @@ public class CorreoOtpSender {
     private final boolean registrarCodigoEnLog;
 
     public CorreoOtpSender(ObjectProvider<JavaMailSender> mailSender,
-                           @Value("${spring.mail.username:}") String remitente,
+                           // Remitente visible. Por defecto el usuario SMTP (Gmail); con proveedores como Brevo el usuario SMTP no es un
+                           // correo, así que se define aparte con APP_2FA_REMITENTE (debe ser un remitente verificado).
+                           @Value("${app.2fa.remitente:${spring.mail.username:}}") String remitente,
                            @Value("${app.2fa.log-codigo:false}") boolean registrarCodigoEnLog) {
         this.mailSender = mailSender;
         this.remitente = remitente;
