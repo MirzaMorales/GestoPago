@@ -148,7 +148,7 @@ Requiere token. Cierra la sesión del token enviado. `200` `{mensaje: "Sesión c
 |---|---|
 | `GET /productos/almacenados` | **Recomendado para las apps.** Catálogo desde Redis, con respaldo en PostgreSQL y, si no hay nada, consulta a GestoPago. |
 | `GET /productos` | Consulta en vivo a GestoPago y actualiza Redis y PostgreSQL. |
-| `GET /getProductList` | Igual que `/productos`; solo para diagnóstico (ver nota). |
+| `GET /getProductList` | Igual que `/productos`; pensado para diagnóstico (ver nota). |
 
 Respuesta `200` (objeto directo):
 ```json
@@ -157,14 +157,18 @@ Respuesta `200` (objeto directo):
   "productos": [
     { "idProducto": 209, "producto": "Telcel $150", "idServicio": 79, "servicio": "Telcel",
       "idCatTipoServicio": 1, "tipoFront": 1, "precio": 150.00, "legend": "…",
-      "logoUrl": "https://gestopago.portalventas.net/sistema/images/gestopago/servicios/79.png" }
+      "logoUrl": "https://gestopago.portalventas.net/sistema/images/gestopago/servicios/79.png",
+      "disponibleParaCompra": true, "montoLibre": false, "categoria": "Recargas y tarjetas" }
   ]
 }
 ```
 - `logoUrl`: imagen PNG pública del servicio; se obtiene con `idServicio` (`getServiceLogo` de GestoPago). Si el servicio no tiene logo la URL responde `404`; la app debe mostrar un ícono de respaldo.
 - `tipoFront 1`: `precio` es el monto a cobrar. `tipoFront 2`: `precio` es la comisión.
+- `disponibleParaCompra`: `true` si el producto se puede comprar desde esta API (`tipoFront` 1 con precio, o 2). Las apps deben ocultar o deshabilitar los que vengan en `false`.
+- `montoLibre`: `true` en pago de servicios (`tipoFront` 2): el cliente captura el importe. En `false` el importe es el `precio` fijo.
+- `categoria`: "Recargas y tarjetas" (`tipoFront` 1), "Pago de servicios" (`tipoFront` 2) u "Otros". El proveedor solo entrega un número en `idCatTipoServicio`, sin nombre; para agrupar por empresa use `servicio`.
 - Errores: `503` (sin token activo de GestoPago), `502` (GestoPago no respondió o respondió algo inválido).
-- **Nota:** `GET /getProductList` usa el header `Authorization`, si viene, como token **del proveedor**. Con la sesión de la app ese header lleva el JWT propio, por lo que las apps deben usar `/productos/almacenados` o `/productos`.
+- **Nota:** `GET /getProductList` equivale a `/productos`. El header `Authorization` es siempre el JWT de esta API; solo para diagnóstico se puede forzar un token del proveedor con el header opcional `X-GestoPago-Token`. Las apps usan `/productos/almacenados`.
 
 ### 4.3 Compra de servicios
 

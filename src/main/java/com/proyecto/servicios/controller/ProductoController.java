@@ -24,12 +24,16 @@ public class ProductoController {
         return respuesta(productoService.obtenerListaProductos());
     }
 
+    /**
+     * Igual que /productos. El header Authorization de esta API lleva el JWT propio, nunca el del proveedor;
+     * para diagnóstico se puede forzar un token de GestoPago con el header X-GestoPago-Token.
+     */
     @GetMapping(value = "/getProductList", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<ProductoListResponse> getProductList(
-            @RequestHeader(value = "Authorization", required = false)
-            @Size(max = 4096, message = "El encabezado Authorization excede el tamaño permitido") String token) {
-        if (token != null && !token.isBlank()) {
-            return respuesta(productoService.obtenerListaProductos(token));
+            @RequestHeader(value = "X-GestoPago-Token", required = false)
+            @Size(max = 4096, message = "El encabezado X-GestoPago-Token excede el tamaño permitido") String tokenProveedor) {
+        if (tokenProveedor != null && !tokenProveedor.isBlank()) {
+            return respuesta(productoService.obtenerListaProductos(tokenProveedor));
         }
         return respuesta(productoService.obtenerListaProductos());
     }

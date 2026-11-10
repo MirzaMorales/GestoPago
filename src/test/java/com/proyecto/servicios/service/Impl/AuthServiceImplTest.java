@@ -128,4 +128,14 @@ class AuthServiceImplTest {
         assertEquals("jwt", r.getAccessToken());
         assertEquals("ADMIN", r.getRol());
     }
+
+    @Test
+    void unUsuarioInactivoNoSeDelataSinConocerLaContrasena() {
+        admin.setActivo(false);
+        when(usuarioRepository.findByCorreo("admin@example.com")).thenReturn(Optional.of(admin));
+        when(passwordEncoder.matches(any(), any())).thenReturn(false);
+
+        // con contraseña incorrecta se responde igual que si el correo no existiera (401), no 403 "inactivo"
+        assertThrows(CredencialesInvalidasException.class, () -> service.login(login("WEB", null)));
+    }
 }

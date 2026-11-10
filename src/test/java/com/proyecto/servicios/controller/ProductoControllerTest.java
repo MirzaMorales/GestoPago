@@ -41,4 +41,27 @@ class ProductoControllerTest {
 
         assertEquals(503, response.getStatusCode().value());
     }
+
+    @Test
+    void getProductListNoTomaElJwtPropioComoTokenDelProveedor() {
+        org.springframework.test.util.ReflectionTestUtils.setField(controller, "productoService", productoService);
+        when(productoService.obtenerListaProductos()).thenReturn(ProductoListResponse.builder().codigo(0).build());
+
+        // sin X-GestoPago-Token se usa el token guardado del proveedor, aunque el cliente mande su JWT en Authorization
+        var response = controller.getProductList(null);
+
+        assertEquals(200, response.getStatusCode().value());
+        org.mockito.Mockito.verify(productoService).obtenerListaProductos();
+        org.mockito.Mockito.verify(productoService, org.mockito.Mockito.never()).obtenerListaProductos(org.mockito.ArgumentMatchers.anyString());
+    }
+
+    @Test
+    void getProductListUsaElTokenDelProveedorSoloSiSeEnviaEnSuHeader() {
+        org.springframework.test.util.ReflectionTestUtils.setField(controller, "productoService", productoService);
+        when(productoService.obtenerListaProductos("tok")).thenReturn(ProductoListResponse.builder().codigo(0).build());
+
+        controller.getProductList("tok");
+
+        org.mockito.Mockito.verify(productoService).obtenerListaProductos("tok");
+    }
 }

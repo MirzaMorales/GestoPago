@@ -55,13 +55,14 @@ public class AuthServiceImpl implements AuthService {
             throw new CredencialesInvalidasException("Credenciales de acceso inválidas");
         }
 
-        validarUsuarioActivo(usuario);
-
+        // La contraseña se valida primero: un usuario inactivo no debe poder detectarse sin conocer sus credenciales.
         if (!passwordEncoder.matches(request.getPassword(), usuario.getPassword())) {
             loginIntentos.registrarFallo(correo);
             throw new CredencialesInvalidasException("Credenciales de acceso inválidas");
         }
         loginIntentos.limpiar(correo);
+
+        validarUsuarioActivo(usuario);
 
         String plataforma = request.getPlataforma() != null ? request.getPlataforma() : "WEB";
         boolean cerrarAnterior = Boolean.TRUE.equals(request.getCerrarSesionAnterior());

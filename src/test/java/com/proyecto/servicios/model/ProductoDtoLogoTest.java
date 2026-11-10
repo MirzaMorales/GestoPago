@@ -29,4 +29,22 @@ class ProductoDtoLogoTest {
         ProductoDTO leido = mapper.readValue(json, ProductoDTO.class);
         assertEquals(79, leido.getIdServicio());
     }
+
+    @Test
+    void productoConPrecioFijoOImporteLibreEstaDisponibleYUnoSinPrecioNo() {
+        ProductoDTO fijo = ProductoDTO.builder().idProducto(1).tipoFront(1).precio(new java.math.BigDecimal("150")).build();
+        ProductoDTO libre = ProductoDTO.builder().idProducto(2).tipoFront(2).build();
+        ProductoDTO sinPrecio = ProductoDTO.builder().idProducto(3).tipoFront(1).build();
+        ProductoDTO otro = ProductoDTO.builder().idProducto(4).tipoFront(9).build();
+
+        assertTrue(fijo.isDisponibleParaCompra());
+        assertFalse(fijo.isMontoLibre());
+        assertEquals("Recargas y tarjetas", fijo.getCategoria());
+        assertTrue(libre.isDisponibleParaCompra());
+        assertTrue(libre.isMontoLibre());
+        assertEquals("Pago de servicios", libre.getCategoria());
+        assertFalse(sinPrecio.isDisponibleParaCompra());
+        assertFalse(otro.isDisponibleParaCompra());
+        assertEquals("Otros", otro.getCategoria());
+    }
 }
