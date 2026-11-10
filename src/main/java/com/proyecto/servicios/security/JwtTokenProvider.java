@@ -4,6 +4,7 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -19,6 +20,15 @@ public class JwtTokenProvider {
 
     @Value("${app.jwt.expiration-ms:3600000}")
     private long jwtExpirationInMs;
+
+    /** Falla al arrancar (y no en el primer login) si el secreto falta o es débil: HS256 exige al menos 32 bytes. */
+    @PostConstruct
+    void validarSecreto() {
+        if (jwtSecret == null || jwtSecret.getBytes(StandardCharsets.UTF_8).length < 32) {
+            throw new IllegalStateException(
+                    "APP_JWT_SECRET no está configurado o tiene menos de 32 caracteres");
+        }
+    }
 
     private SecretKey getSigningKey() {
         byte[] keyBytes = jwtSecret.getBytes(StandardCharsets.UTF_8);
