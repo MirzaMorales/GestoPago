@@ -3,6 +3,7 @@ package com.proyecto.servicios.security;
 import com.proyecto.servicios.exception.Codigo2faInvalidoException;
 import com.proyecto.servicios.exception.CorreoNoDisponibleException;
 import com.proyecto.servicios.exception.DemasiadosIntentosException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
@@ -20,6 +21,7 @@ import java.util.UUID;
  * El código nunca se guarda en claro: en Redis solo queda su hash, con vigencia corta,
  * número máximo de intentos y un solo uso.
  */
+@Slf4j
 @Service
 public class Otp2faService {
 
@@ -67,6 +69,8 @@ public class Otp2faService {
             correo.enviar(correoDestino, codigo, Math.max(1, ttlSegundos / 60));
         } catch (RuntimeException ex) {
             redis.delete(CLAVE_DESAFIO + desafioId);
+            // Se registra el motivo real (autenticación SMTP, host, red...) sin incluir el código ni credenciales.
+            log.error("No se pudo enviar el código 2FA ({}): {}", ex.getClass().getSimpleName(), causaRaiz(ex));
             throw new CorreoNoDisponibleException();
         }
         return new Desafio(desafioId, enmascarar(correoDestino), ttlSegundos);
@@ -98,6 +102,15 @@ public class Otp2faService {
 
         eliminar(desafioId);
         return new Verificado(Long.valueOf(partes[0]), partes[1], Boolean.parseBoolean(partes[2]));
+    }
+
+    private static String causaRaiz(Throwable ex) {
+        Throwable raiz = ex;
+        while (raiz.getCause() != null && raiz.getCause() != raiz) {
+            raiz = raiz.getCause();
+        }
+        String mensaje = raiz.getMessage() == null ? "" : raiz.getMessage().replaceAll("\s+", " ");
+        return raiz.getClass().getSimpleName() + ": " + (mensaje.length() > 300 ? mensaje.substring(0, 300) : mensaje);
     }
 
     private void limitarEnvios(Long usuarioId) {
