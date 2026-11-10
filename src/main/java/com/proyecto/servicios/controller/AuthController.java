@@ -2,7 +2,9 @@ package com.proyecto.servicios.controller;
 
 import com.proyecto.servicios.model.GenericResponse;
 import com.proyecto.servicios.model.request.LoginRequest;
+import com.proyecto.servicios.model.request.Verificacion2faRequest;
 import com.proyecto.servicios.model.response.JwtAuthResponse;
+import com.proyecto.servicios.model.response.Login2faResponse;
 import com.proyecto.servicios.service.AuthService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,9 +20,14 @@ public class AuthController {
     private AuthService authService;
 
     @PostMapping("/login")
-    public ResponseEntity<JwtAuthResponse> login(@Valid @RequestBody LoginRequest request) {
-        JwtAuthResponse response = authService.login(request);
-        return ResponseEntity.ok(response);
+    public ResponseEntity<Login2faResponse> login(@Valid @RequestBody LoginRequest request) {
+        return ResponseEntity.ok(authService.login(request));
+    }
+
+    /** Paso 2: valida el código 2FA enviado por correo y entrega el JWT. */
+    @PostMapping("/verificar-2fa")
+    public ResponseEntity<JwtAuthResponse> verificar2fa(@Valid @RequestBody Verificacion2faRequest request) {
+        return ResponseEntity.ok(authService.verificar2fa(request));
     }
 
     /** Cierra la sesión activa del token enviado; requiere autenticación. */

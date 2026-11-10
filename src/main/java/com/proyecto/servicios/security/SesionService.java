@@ -55,6 +55,17 @@ public class SesionService {
         throw new SesionActivaException(plataformaDe(actual));
     }
 
+    /** Falla con 409 si hay otra sesión activa y no se pidió reemplazarla (sin abrir ni modificar nada). */
+    public void verificarSinSesionActiva(Long usuarioId, boolean reemplazar) {
+        if (reemplazar) {
+            return;
+        }
+        String actual = redis.opsForValue().get(PREFIJO + usuarioId);
+        if (actual != null) {
+            throw new SesionActivaException(plataformaDe(actual));
+        }
+    }
+
     public boolean esVigente(Long usuarioId, String jti) {
         if (usuarioId == null || jti == null) {
             return false;
