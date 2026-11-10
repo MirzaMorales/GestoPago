@@ -339,6 +339,8 @@ El PIN se guarda con hash; tras 5 intentos fallidos al pagar se bloquea 15 minut
 | `POST confirmTx` | Confirmar si una operación sin respuesta se aplicó | Conciliación |
 | `GET getServiceLogo` | Logo PNG por `idServicio` | Las apps, vía `logoUrl` |
 
+Seguridad de las peticiones al proveedor: solo HTTPS (si una URL configurada no es `https://` el servicio no arranca; el certificado del servidor, DigiCert, se valida con el almacén de confianza de Java y el proveedor no pide certificado de cliente), `X-API-Key` en cada petición y payload de `sendTx`/`confirmTx` cifrado con AES-256-CBC (verificado contra el ejemplo cifrado de su documentación).
+
 Tiempo de espera de `sendTx`: 70 s (el proveedor responde código 82 tras 62 s). Sin reintentos automáticos en operaciones financieras.
 
 ## 9. Variables de entorno
@@ -348,7 +350,7 @@ Tiempo de espera de `sendTx`: 70 s (el proveedor responde código 82 tras 62 s).
 | `DB_URL`, `DB_USER`, `DB_PASSWORD` | PostgreSQL (Neon) |
 | `SPRING_DATA_REDIS_URL` | Redis |
 | `APP_JWT_SECRET` | Firma del JWT (32 caracteres o más) |
-| `GESTOPAGO_AUTH_PASSWORD`, `GESTOPAGO_CRYPTO_KEY`, `GESTOPAGO_CRYPTO_IV`, `GESTOPAGO_API_KEY` (opcional) | Proveedor |
+| `GESTOPAGO_AUTH_PASSWORD`, `GESTOPAGO_CRYPTO_KEY`, `GESTOPAGO_CRYPTO_IV`, `GESTOPAGO_API_KEY` | Proveedor. La API key viaja en el header `X-API-Key` de **todas** las peticiones (autenticación, catálogo, `sendTx`, `confirmTx`), como indica su documentación. |
 | `SPRING_MAIL_HOST`, `SPRING_MAIL_PORT`, `SPRING_MAIL_USERNAME`, `SPRING_MAIL_PASSWORD` | Servidor SMTP del código 2FA. **En Render gratis los puertos 25, 465 y 587 están bloqueados** (Gmail no funciona ahí): usar un proveedor SMTP con puerto 2525 (p. ej. Brevo: `smtp-relay.brevo.com`, `2525`). |
 | `APP_2FA_REMITENTE` | Correo remitente visible del código (debe ser un remitente verificado en el proveedor). Si se omite se usa `SPRING_MAIL_USERNAME`. |
 | `APP_ADMIN_CORREO`, `APP_ADMIN_PASSWORD` | Admin inicial |
