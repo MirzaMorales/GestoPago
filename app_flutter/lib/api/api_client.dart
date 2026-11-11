@@ -43,6 +43,8 @@ class ApiClient {
 
   Future<dynamic> put(String path, [Object? body]) => _enviar('PUT', path, body: body);
 
+  Future<dynamic> delete(String path, [Object? body]) => _enviar('DELETE', path, body: body);
+
   Future<dynamic> _enviar(String metodo, String path,
       {Object? body, Map<String, String>? headers}) async {
     final uri = Uri.parse('$apiUrl$path');

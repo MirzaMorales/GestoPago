@@ -55,6 +55,8 @@ String dinero(num? v) => v == null ? '—' : _moneda.format(v);
 
 String fechaHora(DateTime? f) => f == null ? '—' : _fechaHora.format(f);
 
+String fechaLarga(DateTime? f) => f == null ? '—' : DateFormat("d 'de' MMMM 'de' yyyy", 'es_MX').format(f);
+
 /// Colores semánticos para el resultado de una compra.
 class Estados {
   static const exito = Color(0xFF15803D);

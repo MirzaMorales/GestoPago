@@ -29,7 +29,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
     super.dispose();
   }
 
-  void _recargar() => setState(() => _carga = widget.session.api.productos());
+  void _recargar() => setState(() { _carga = widget.session.api.productos(); });
 
   /// Agrupa los productos por servicio (un servicio = una marca: Telcel, CFE, Amazon...).
   List<_Servicio> _agrupar(List<Producto> productos) {

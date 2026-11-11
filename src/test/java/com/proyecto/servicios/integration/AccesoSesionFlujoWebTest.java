@@ -23,6 +23,7 @@ import com.proyecto.servicios.security.SesionService;
 import com.proyecto.servicios.service.HistorialService;
 import com.proyecto.servicios.service.Impl.AuthServiceImpl;
 import com.proyecto.servicios.service.PagoService;
+import com.proyecto.servicios.service.RecuperacionPasswordService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -61,7 +62,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  */
 @WebMvcTest
 @ContextConfiguration(classes = {
-        AuthController.class, PagoController.class, AuthServiceImpl.class, SecurityConfig.class,
+        AuthController.class, PagoController.class, AuthServiceImpl.class, RecuperacionPasswordService.class, SecurityConfig.class,
         JwtAuthenticationFilter.class, JwtTokenProvider.class, SesionService.class, AccesosService.class,
         ApiErrorResponseWriter.class, GlobalExceptionHandler.class})
 @TestPropertySource(properties = "app.jwt.secret=clave-de-pruebas-con-mas-de-32-caracteres-123456")
@@ -113,6 +114,11 @@ class AccesoSesionFlujoWebTest {
         when(otp2fa.crear(anyLong(), anyString(), anyString(), anyBoolean())).thenAnswer(i -> {
             plataformaDelDesafio = i.getArgument(2);
             cerrarDelDesafio = i.getArgument(3);
+            return new Otp2faService.Desafio("desafio-" + i.getArgument(0), "c***@example.com", 300);
+        });
+        when(otp2fa.crearRecuperacion(anyLong(), anyString())).thenAnswer(i -> {
+            plataformaDelDesafio = Otp2faService.PROPOSITO_RECUPERACION;
+            cerrarDelDesafio = false;
             return new Otp2faService.Desafio("desafio-" + i.getArgument(0), "c***@example.com", 300);
         });
         when(otp2fa.verificar(anyString(), eq("123456"))).thenAnswer(i -> new Otp2faService.Verificado(
@@ -263,5 +269,62 @@ class AccesoSesionFlujoWebTest {
         mvc.perform(post("/auth/login").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"correo\":\"no-es-correo\",\"password\":\"x\",\"plataforma\":\"TV\"}"))
                 .andExpect(status().isBadRequest());
+    }
+
+    // ------------------------------------------------------------------ olvidé mi contraseña
+
+    private ResultActions solicitarRecuperacion(String correo) throws Exception {
+        return mvc.perform(post("/auth/recuperar/solicitar").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"correo\":\"" + correo + "\"}"));
+    }
+
+    private ResultActions restablecer(String desafioId, String nueva) throws Exception {
+        return mvc.perform(post("/auth/recuperar/restablecer").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"desafioId\":\"" + desafioId + "\",\"codigo\":\"123456\",\"nuevaPassword\":\"" + nueva + "\"}"));
+    }
+
+    @Test
+    void recuperacionConCorreoNoRegistradoRespondeIgualSinEnviarCodigo() throws Exception {
+        solicitarRecuperacion("nadie@example.com")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.desafioId").exists())
+                .andExpect(jsonPath("$.correoEnmascarado").value("n***@example.com"));
+        verify(otp2fa, never()).crearRecuperacion(anyLong(), anyString());
+    }
+
+    @Test
+    void restablecerCambiaLaContrasenaYCierraLaSesionAbierta() throws Exception {
+        login("cliente@example.com", "MOVIL", false).andExpect(status().isOk());
+        String tokenViejo = verificar("desafio-1");
+
+        solicitarRecuperacion("cliente@example.com").andExpect(status().isOk())
+                .andExpect(jsonPath("$.desafioId").value("desafio-1"));
+        restablecer("desafio-1", "Nueva#Clave9").andExpect(status().isOk());
+
+        historial(tokenViejo).andExpect(status().isUnauthorized());           // la sesión anterior se cerró
+        mvc.perform(post("/auth/login").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"correo\":\"cliente@example.com\",\"password\":\"Nueva#Clave9\"}"))
+                .andExpect(status().isOk());                                  // entra con la nueva
+    }
+
+    @Test
+    void unCodigoDeRecuperacionNoAbreSesion() throws Exception {
+        solicitarRecuperacion("cliente@example.com").andExpect(status().isOk());
+        mvc.perform(post("/auth/verificar-2fa").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"desafioId\":\"desafio-1\",\"codigo\":\"123456\"}"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.accessToken").doesNotExist());
+    }
+
+    @Test
+    void unCodigoDeLoginNoRestableceContrasenas() throws Exception {
+        login("cliente@example.com", "WEB", false).andExpect(status().isOk()); // desafío de login
+        restablecer("desafio-1", "Nueva#Clave9").andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void restablecerExigeContrasenaSegura() throws Exception {
+        restablecer("desafio-1", "debil").andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.detalles.nuevaPassword").exists());
     }
 }

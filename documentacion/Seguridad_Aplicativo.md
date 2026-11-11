@@ -14,6 +14,7 @@ con la evidencia de los ataques probados.
 | Control de acceso | `@PreAuthorize` por rol (ADMIN / CLIENTE) y por dueño del recurso (`@accesos.esDuenoDeCuenta`, `esClienteId`). |
 | Contraseñas y PIN | BCrypt (hash irreversible); longitud máxima de 128 caracteres. |
 | Fuerza bruta | Bloqueo por correo tras 5 intentos fallidos de login, bloqueo de PIN y límite por IP (sección 3). |
+| Recuperar contraseña | Código de un solo uso por correo (hash en Redis, vigencia e intentos limitados). La respuesta no revela si el correo existe; un código de recuperación no sirve para iniciar sesión (ni al revés). Al restablecer se cierran las sesiones abiertas. |
 
 ### ¿Por qué Spring Security y no Keycloak?
 
@@ -31,6 +32,7 @@ La consigna permite Keycloak **o** Spring Security. Elegimos Spring Security por
   - **correo**: sin comillas ni comentarios;
   - **colonia, municipio y estado**: además deben existir en el catálogo oficial SEPOMEX.
 - Se rechaza cualquier `<script>`, `<img onerror>`, `{"$ne":…}`, `${jndi:…}`, caracteres de control, `;`, `|`, etc.
+- Nacionalidad: solo mexicana (el servicio y la CURP lo exigen). Abonos de saldo: máximo $50,000 por operación.
 - Tipos y formatos estrictos: CURP, RFC, teléfono, CP, montos (`@Digits`), fechas, longitudes máximas.
 - **Campos desconocidos** en el JSON se rechazan (por ejemplo `"rol":"ADMIN"` → 400 "Campo no permitido").
 - **SQL injection**: todas las consultas son JPA / JPQL parametrizadas; no se concatena SQL.
@@ -45,6 +47,7 @@ La consigna permite Keycloak **o** Spring Security. Elegimos Spring Security por
 | Límite por IP: login | 10 / minuto → `429` con `Retry-After` |
 | Límite por IP: verificación 2FA | 15 / minuto |
 | Límite por IP: registro | 10 / hora |
+| Límite por IP: recuperar contraseña | 10 / hora |
 | Límite por IP: catálogo público | 120 / minuto |
 | Límite por IP: resto de la API | 300 / minuto |
 

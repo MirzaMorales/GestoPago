@@ -204,6 +204,8 @@ class _ProductScreenState extends State<ProductScreen> {
         padding: const EdgeInsets.all(20),
         child: Form(
           key: _form,
+          // Validación en tiempo real: el error aparece al escribir, no hasta enviar.
+          autovalidateMode: AutovalidateMode.onUserInteraction,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [

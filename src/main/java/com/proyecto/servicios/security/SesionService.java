@@ -81,6 +81,11 @@ public class SesionService {
         }
     }
 
+    /** Cierra cualquier sesión activa del usuario (por ejemplo, al restablecer su contraseña). */
+    public void cerrarTodas(Long usuarioId) {
+        redis.delete(PREFIJO + usuarioId);
+    }
+
     private String plataformaDe(String valor) {
         int i = valor.indexOf(SEPARADOR);
         return i >= 0 ? valor.substring(i + 1) : "DESCONOCIDA";
