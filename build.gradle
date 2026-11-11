@@ -104,16 +104,26 @@ springBoot {
     }
 }
 
-sonarqube {
+// SonarQube analiza TODO el código fuente (incluidos config/ y controller/, donde vive la seguridad).
+// Solo se excluyen de la cobertura las clases sin lógica (DTO, entidades, enums y el arranque).
+sonar {
     properties {
-        property "sonar.exclusions", "**/App.java,**/model/**,**/entity/**,**/enums/**,**/config/**,**/controller/**,**/service/configuracion/**"
+        property "sonar.projectKey", "gestopago"
+        property "sonar.projectName", "GestoPago"
+        property "sonar.coverage.exclusions", "**/App.java,**/model/**,**/entity/**,**/enums/**"
+        property "sonar.coverage.jacoco.xmlReportPaths", "build/reports/jacoco/test/jacocoTestReport.xml"
     }
 }
+
+test {
+    finalizedBy jacocoTestReport
+}
+
 jacocoTestReport {
+    dependsOn test
     reports {
-        reports {
-            xml.required=true
-        }
+        xml.required = true
+        html.required = true
     }
 }
 
