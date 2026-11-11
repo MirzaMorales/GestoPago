@@ -27,12 +27,15 @@ public class BuscaClienteRequest {
     private String rfc;
 
     @Size(max = 100, message = "El correo electrónico no puede exceder 100 caracteres")
+    @Pattern(regexp = PatronesSeguros.CORREO_PARCIAL, message = PatronesSeguros.MENSAJE_CORREO)
     private String correo;
 
     @Size(max = 50, message = "El nombre no puede exceder 50 caracteres")
+    @Pattern(regexp = PatronesSeguros.TEXTO_LIBRE, message = PatronesSeguros.MENSAJE_TEXTO_LIBRE)
     private String nombre;
 
     @Size(max = 50, message = "El apellido no puede exceder 50 caracteres")
+    @Pattern(regexp = PatronesSeguros.TEXTO_LIBRE, message = PatronesSeguros.MENSAJE_TEXTO_LIBRE)
     private String apellido;
 
     private Boolean activo;

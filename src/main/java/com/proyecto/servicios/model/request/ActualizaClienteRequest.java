@@ -45,18 +45,22 @@ public class ActualizaClienteRequest {
 
     @NotBlank(message = "El sexo es obligatorio")
     @Size(max = 20, message = "El sexo no puede exceder 20 caracteres")
+    @Pattern(regexp = PatronesSeguros.SOLO_LETRAS, message = PatronesSeguros.MENSAJE_SOLO_LETRAS)
     private String sexo;
 
     @Size(max = 50, message = "La nacionalidad no puede exceder 50 caracteres")
+    @Pattern(regexp = PatronesSeguros.SOLO_LETRAS, message = PatronesSeguros.MENSAJE_SOLO_LETRAS)
     private String nacionalidad;
 
     @NotBlank(message = "El estado civil es obligatorio")
     @Size(max = 30, message = "El estado civil no puede exceder 30 caracteres")
+    @Pattern(regexp = PatronesSeguros.SOLO_LETRAS, message = PatronesSeguros.MENSAJE_SOLO_LETRAS)
     private String estadoCivil;
 
     @NotBlank(message = "El correo electrónico es obligatorio")
     @Email(message = "El formato del correo electrónico es inválido")
     @Size(max = 100, message = "El correo electrónico no puede exceder 100 caracteres")
+    @Pattern(regexp = PatronesSeguros.CORREO, message = PatronesSeguros.MENSAJE_CORREO)
     private String correo;
 
     @NotBlank(message = "El teléfono móvil es obligatorio")
@@ -68,10 +72,12 @@ public class ActualizaClienteRequest {
 
     @NotBlank(message = "La ocupación es obligatoria")
     @Size(max = 100, message = "La ocupación no puede exceder 100 caracteres")
+    @Pattern(regexp = PatronesSeguros.TEXTO_LIBRE, message = PatronesSeguros.MENSAJE_TEXTO_LIBRE)
     private String ocupacion;
 
     @NotBlank(message = "La empresa es obligatoria")
     @Size(max = 100, message = "La empresa no puede exceder 100 caracteres")
+    @Pattern(regexp = PatronesSeguros.TEXTO_LIBRE, message = PatronesSeguros.MENSAJE_TEXTO_LIBRE)
     private String empresa;
 
     @NotNull(message = "El ingreso mensual es obligatorio")

@@ -50,6 +50,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -225,6 +226,27 @@ class AccesoSesionFlujoWebTest {
         String token = verificar("desafio-2");
 
         historial(token).andExpect(status().isForbidden());
+    }
+
+    @Test
+    void camposNoPermitidosEnElJsonSeRechazan() throws Exception {
+        // intento de escalar privilegios agregando un campo que la API no acepta
+        mvc.perform(post("/auth/login").contentType(MediaType.APPLICATION_JSON).content(
+                        "{\"correo\":\"cliente@example.com\",\"password\":\"" + CLAVE + "\",\"rol\":\"ADMIN\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.mensaje").value("La solicitud contiene campos no permitidos"))
+                .andExpect(jsonPath("$.detalles.rol").value("Campo no permitido"));
+        verifyNoInteractions(otp2fa);
+    }
+
+    @Test
+    void lasRespuestasLlevanCabecerasDeSeguridad() throws Exception {
+        mvc.perform(post("/auth/login").contentType(MediaType.APPLICATION_JSON).content("{}"))
+                .andExpect(header().string("Content-Security-Policy", containsString("default-src 'none'")))
+                .andExpect(header().string("X-Content-Type-Options", "nosniff"))
+                .andExpect(header().string("X-Frame-Options", "DENY"))
+                .andExpect(header().string("Referrer-Policy", "no-referrer"))
+                .andExpect(header().exists("Permissions-Policy"));
     }
 
     @Test

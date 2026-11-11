@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 
 import '../../api/api_client.dart';
 import '../../state/session.dart';
+import '../../ui/filtros_entrada.dart';
 import '../../api/models.dart';
 import '../../legal/documentos_legales.dart';
 import '../../legal/legal_screen.dart';
@@ -213,7 +214,8 @@ class _RegisterPanelState extends State<RegisterPanel> {
       child: TextFormField(
         controller: _ctl(campo, inicial),
         keyboardType: teclado,
-        inputFormatters: formato,
+        // Por defecto, solo texto seguro (sin HTML ni caracteres de control).
+        inputFormatters: formato ?? [FiltrosEntrada.textoLibre],
         maxLength: maxLength,
         textCapitalization: mayusculas,
         autofillHints: autofill,
@@ -302,14 +304,14 @@ class _RegisterPanelState extends State<RegisterPanel> {
 
   List<Widget> _pasoPersonal() => [
         _fila([
-          _campo('nombre', 'Nombre', icono: Icons.person_outline, validar: _soloLetras,
+          _campo('nombre', 'Nombre', formato: [FiltrosEntrada.soloLetras], maxLength: 50, icono: Icons.person_outline, validar: _soloLetras,
               autofill: const [AutofillHints.givenName]),
-          _campo('segundoNombre', 'Segundo nombre', opcional: true, validar: _soloLetras),
+          _campo('segundoNombre', 'Segundo nombre', formato: [FiltrosEntrada.soloLetras], maxLength: 50, opcional: true, validar: _soloLetras),
         ]),
         _fila([
-          _campo('apellidoPaterno', 'Apellido paterno', validar: _soloLetras,
+          _campo('apellidoPaterno', 'Apellido paterno', formato: [FiltrosEntrada.soloLetras], maxLength: 50, validar: _soloLetras,
               autofill: const [AutofillHints.familyName]),
-          _campo('apellidoMaterno', 'Apellido materno', validar: _soloLetras),
+          _campo('apellidoMaterno', 'Apellido materno', formato: [FiltrosEntrada.soloLetras], maxLength: 50, validar: _soloLetras),
         ]),
         Padding(
           padding: const EdgeInsets.only(bottom: 14),
@@ -334,7 +336,7 @@ class _RegisterPanelState extends State<RegisterPanel> {
               const ['Soltero(a)', 'Casado(a)', 'Unión libre', 'Divorciado(a)', 'Viudo(a)'],
               _estadoCivil, (v) => setState(() => _estadoCivil = v)),
         ]),
-        _campo('nacionalidad', 'Nacionalidad', icono: Icons.flag_outlined, inicial: 'Mexicana',
+        _campo('nacionalidad', 'Nacionalidad', formato: [FiltrosEntrada.soloLetras], maxLength: 50, icono: Icons.flag_outlined, inicial: 'Mexicana',
             validar: (s) => s.length <= 50 ? null : 'Máximo 50 caracteres'),
         _campo('curp', 'CURP',
             icono: Icons.fingerprint,
@@ -358,6 +360,8 @@ class _RegisterPanelState extends State<RegisterPanel> {
 
   List<Widget> _pasoContacto() => [
         _campo('correo', 'Correo electrónico',
+            formato: [FiltrosEntrada.correo],
+            maxLength: 100,
             icono: Icons.mail_outline,
             teclado: TextInputType.emailAddress,
             mayusculas: TextCapitalization.none,
@@ -449,10 +453,13 @@ class _RegisterPanelState extends State<RegisterPanel> {
         padding: const EdgeInsets.only(bottom: 14),
         child: TextFormField(
           controller: _ctl('password'),
+          maxLength: FiltrosEntrada.maxPassword,
+          inputFormatters: [FiltrosEntrada.sinControl],
           obscureText: _ocultar,
           autofillHints: const [AutofillHints.newPassword],
           decoration: InputDecoration(
             labelText: 'Contraseña',
+            counterText: '',
             prefixIcon: const Icon(Icons.lock_outline),
             errorText: _errServidor['password'],
             errorMaxLines: 3,
@@ -471,9 +478,11 @@ class _RegisterPanelState extends State<RegisterPanel> {
         padding: const EdgeInsets.only(bottom: 14),
         child: TextFormField(
           controller: _ctl('confirmacion'),
+          maxLength: FiltrosEntrada.maxPassword,
+          inputFormatters: [FiltrosEntrada.sinControl],
           obscureText: _ocultar,
           decoration: const InputDecoration(
-              labelText: 'Confirma la contraseña', prefixIcon: Icon(Icons.lock_reset_outlined)),
+              labelText: 'Confirma la contraseña', prefixIcon: Icon(Icons.lock_reset_outlined), counterText: ''),
           validator: (v) => v == pass ? null : 'Las contraseñas no coinciden',
         ),
       ),
