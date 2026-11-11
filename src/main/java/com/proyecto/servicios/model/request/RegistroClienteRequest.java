@@ -52,8 +52,9 @@ public class RegistroClienteRequest {
     @Pattern(regexp = PatronesSeguros.SOLO_LETRAS, message = PatronesSeguros.MENSAJE_SOLO_LETRAS)
     private String sexo;
 
+    /** Por ahora el servicio es solo para personas de nacionalidad mexicana (la CURP también lo exige). */
     @Size(max = 50, message = "La nacionalidad no puede exceder 50 caracteres")
-    @Pattern(regexp = PatronesSeguros.SOLO_LETRAS, message = PatronesSeguros.MENSAJE_SOLO_LETRAS)
+    @Pattern(regexp = "(?iu)^mexican[ao]$", message = "Por ahora solo se admiten personas de nacionalidad mexicana")
     private String nacionalidad;
 
     @NotBlank(message = "El estado civil es obligatorio")

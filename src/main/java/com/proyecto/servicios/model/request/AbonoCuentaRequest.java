@@ -1,5 +1,6 @@
 package com.proyecto.servicios.model.request;
 
+import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotBlank;
@@ -24,6 +25,7 @@ public class AbonoCuentaRequest {
 
     @NotNull(message = "El monto es obligatorio")
     @DecimalMin(value = "0.01", message = "El monto debe ser mayor a cero")
+    @DecimalMax(value = "50000.00", message = "El abono máximo por operación es de $50,000.00")
     @Digits(integer = 13, fraction = 2, message = "El monto admite máximo 13 enteros y 2 decimales")
     private BigDecimal monto;
 }

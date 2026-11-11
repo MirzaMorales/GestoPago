@@ -10,12 +10,13 @@ import '../api/models.dart';
 /// Estado de sesión de la app. El servidor es quien decide si la sesión sigue vigente:
 /// ante un 401 se borra el token local y se vuelve al login.
 class Session extends ChangeNotifier {
-  Session() {
-    client.onSesionInvalida = () => _expirar(
+  /// [client] se puede inyectar en pruebas (servidor simulado).
+  Session({ApiClient? client}) : client = client ?? ApiClient() {
+    this.client.onSesionInvalida = () => _expirar(
         'Tu sesión terminó: expiró o se inició sesión desde otro dispositivo.');
   }
 
-  final ApiClient client = ApiClient();
+  final ApiClient client;
   late final GestoPagoApi api = GestoPagoApi(client);
 
   static const _storage = FlutterSecureStorage();

@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../../state/session.dart';
 import 'login_panel.dart';
+import 'recuperar_panel.dart';
 import 'register_panel.dart';
 
-enum ModoAuth { login, registro }
+enum ModoAuth { login, registro, recuperar }
 
 String? validarCorreo(String? v) {
   final s = v?.trim() ?? '';
@@ -98,7 +99,19 @@ class _FlujoAuthState extends State<FlujoAuth> {
   Widget build(BuildContext context) {
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 250),
-      child: _modo == ModoAuth.login
+      child: _modo == ModoAuth.recuperar
+          ? RecuperarPanel(
+              key: const ValueKey('recuperar'),
+              session: widget.session,
+              correoInicial: _correo,
+              onVolver: () => setState(() => _modo = ModoAuth.login),
+              onRestablecida: (correo) => setState(() {
+                _correo = correo;
+                _mensaje = 'Tu contraseña se actualizó. Inicia sesión con la nueva.';
+                _modo = ModoAuth.login;
+              }),
+            )
+          : _modo == ModoAuth.login
           ? LoginPanel(
               key: ValueKey('login-$_correo'),
               session: widget.session,
@@ -106,6 +119,10 @@ class _FlujoAuthState extends State<FlujoAuth> {
               mensajeInicial: _mensaje,
               onCrearCuenta: () => setState(() {
                 _modo = ModoAuth.registro;
+                _mensaje = null;
+              }),
+              onOlvidePassword: () => setState(() {
+                _modo = ModoAuth.recuperar;
                 _mensaje = null;
               }),
             )
@@ -175,4 +192,44 @@ Future<void> abrirPantallaAuth(BuildContext context, Session session, ModoAuth m
       ),
     ),
   ));
+}
+
+/// Reglas de contraseña segura (las mismas que exige el backend).
+final reglasContrasena = <(String, RegExp)>[
+  ('Mínimo 8 caracteres', RegExp(r'.{8,}')),
+  ('Una letra mayúscula', RegExp(r'[A-Z]')),
+  ('Una letra minúscula', RegExp(r'[a-z]')),
+  ('Un número', RegExp(r'\d')),
+  ('Un carácter especial (!@#\$…)', RegExp(r'[^A-Za-z0-9\s]')),
+];
+
+String? validarContrasenaSegura(String? v) =>
+    reglasContrasena.every((r) => r.$2.hasMatch(v ?? '')) ? null : 'La contraseña no cumple las reglas';
+
+/// Lista de reglas que se va marcando mientras se escribe.
+class ReglasContrasena extends StatelessWidget {
+  const ReglasContrasena({super.key, required this.valor});
+
+  final String valor;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context);
+    return Wrap(
+      spacing: 16,
+      runSpacing: 6,
+      children: [
+        for (final r in reglasContrasena)
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(r.$2.hasMatch(valor) ? Icons.check_circle : Icons.radio_button_unchecked,
+                  size: 18, color: r.$2.hasMatch(valor) ? t.colorScheme.primary : t.colorScheme.outline),
+              const SizedBox(width: 6),
+              Text(r.$1, style: t.textTheme.bodySmall),
+            ],
+          ),
+      ],
+    );
+  }
 }

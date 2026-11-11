@@ -20,6 +20,7 @@ class LoginPanel extends StatefulWidget {
     this.correoInicial,
     this.mensajeInicial,
     required this.onCrearCuenta,
+    this.onOlvidePassword,
   });
 
   final Session session;
@@ -28,6 +29,7 @@ class LoginPanel extends StatefulWidget {
   /// Aviso positivo al abrir (por ejemplo, "Tu cuenta fue creada").
   final String? mensajeInicial;
   final VoidCallback onCrearCuenta;
+  final VoidCallback? onOlvidePassword;
 
   @override
   State<LoginPanel> createState() => _LoginPanelState();
@@ -130,6 +132,8 @@ class _LoginPanelState extends State<LoginPanel> {
   Widget _credenciales(ThemeData t) {
     return Form(
       key: _form,
+      // Validación en tiempo real: el error aparece al escribir, no hasta enviar.
+      autovalidateMode: AutovalidateMode.onUserInteraction,
       child: AutofillGroup(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -177,6 +181,14 @@ class _LoginPanelState extends State<LoginPanel> {
               ),
               validator: (v) => (v == null || v.isEmpty) ? 'Escribe tu contraseña' : null,
             ),
+            if (widget.onOlvidePassword != null)
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: _enviando ? null : widget.onOlvidePassword,
+                  child: const Text('¿Olvidaste tu contraseña?'),
+                ),
+              ),
             if (_error != null) ...[
               const SizedBox(height: 16),
               AlertaAuth(_error!),

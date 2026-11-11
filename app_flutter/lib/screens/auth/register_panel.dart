@@ -113,7 +113,7 @@ class _RegisterPanelState extends State<RegisterPanel> {
       'curp': _v('curp').toUpperCase(),
       'rfc': _v('rfc').toUpperCase(),
       'sexo': _sexo,
-      'nacionalidad': _v('nacionalidad'),
+      'nacionalidad': 'Mexicana',
       'estadoCivil': _estadoCivil,
       'correo': _v('correo').toLowerCase(),
       'telefonoMovil': _v('telefonoMovil'),
@@ -336,8 +336,21 @@ class _RegisterPanelState extends State<RegisterPanel> {
               const ['Soltero(a)', 'Casado(a)', 'Unión libre', 'Divorciado(a)', 'Viudo(a)'],
               _estadoCivil, (v) => setState(() => _estadoCivil = v)),
         ]),
-        _campo('nacionalidad', 'Nacionalidad', formato: [FiltrosEntrada.soloLetras], maxLength: 50, icono: Icons.flag_outlined, inicial: 'Mexicana',
-            validar: (s) => s.length <= 50 ? null : 'Máximo 50 caracteres'),
+        // Por ahora el servicio es solo para personas de nacionalidad mexicana: el campo no se edita.
+        Padding(
+          padding: const EdgeInsets.only(bottom: 14),
+          child: TextFormField(
+            initialValue: 'Mexicana',
+            readOnly: true,
+            enabled: false,
+            decoration: const InputDecoration(
+              labelText: 'Nacionalidad',
+              prefixIcon: Icon(Icons.flag_outlined),
+              suffixIcon: Icon(Icons.lock_outline, size: 18),
+              helperText: 'Por ahora el servicio es solo para personas de nacionalidad mexicana',
+            ),
+          ),
+        ),
         _campo('curp', 'CURP',
             icono: Icons.fingerprint,
             maxLength: 18,
@@ -611,6 +624,8 @@ class _RegisterPanelState extends State<RegisterPanel> {
         AutofillGroup(
           child: Form(
             key: _forms[_paso],
+            // Validación en tiempo real: el error aparece al escribir, no hasta enviar.
+            autovalidateMode: AutovalidateMode.onUserInteraction,
             child: Column(children: contenido),
           ),
         ),

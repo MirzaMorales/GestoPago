@@ -90,7 +90,8 @@ public class SecurityConfig {
                                 errorResponseWriter.write(response, HttpStatus.FORBIDDEN,
                                         "No tiene permisos para acceder a este recurso")))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(HttpMethod.POST, "/auth/login", "/auth/verificar-2fa").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/auth/login", "/auth/verificar-2fa",
+                                "/auth/recuperar/solicitar", "/auth/recuperar/restablecer").permitAll()
                         .requestMatchers("/actuator/health/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/clientes").permitAll()
                         // Catálogo de domicilios (SEPOMEX): solo lectura, se usa en el registro antes de iniciar sesión.

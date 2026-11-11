@@ -1,7 +1,9 @@
+export 'models_admin.dart';
 import 'dart:math';
 
 import 'api_client.dart';
 import 'models.dart';
+import 'models_admin.dart';
 
 /// Endpoints del backend usados por la app (web y móvil comparten exactamente los mismos).
 class GestoPagoApi {
@@ -88,6 +90,75 @@ class GestoPagoApi {
     final lista = (json is Map ? json['datos'] : null) as List? ?? [];
     if (lista.isEmpty) throw ApiException(404, 'No se encontró tu información de cliente.');
     return Perfil.fromJson(Map<String, dynamic>.from(lista.first as Map));
+  }
+
+  /// Expediente completo (domicilio, cuentas y usuario). El cliente solo puede pedir el suyo.
+  Future<ClienteDetalle> clienteDetalle(int clienteId) async {
+    final lista = await buscarClientes({'id': clienteId});
+    if (lista.isEmpty) throw ApiException(404, 'No se encontró la información del cliente.');
+    return lista.first;
+  }
+
+  /// ADMIN: búsqueda por id, correo, nombre, apellido, CURP, RFC o número de cuenta.
+  Future<List<ClienteDetalle>> buscarClientes(Map<String, dynamic> criterios) async {
+    final json = await client.post('/clientes/buscar', {
+      ...criterios,
+      'incluirDomicilio': true,
+      'incluirCuentas': true,
+      'incluirUsuario': true,
+    });
+    return ((json is Map ? json['datos'] : null) as List? ?? [])
+        .whereType<Map<String, dynamic>>()
+        .map(ClienteDetalle.new)
+        .toList();
+  }
+
+  /// Actualiza el expediente (PUT /clientes). El backend vuelve a validar todo, incluido el domicilio.
+  Future<void> actualizarCliente(Map<String, dynamic> datos) => client.put('/clientes', datos);
+
+  Future<void> cambiarPassword(int usuarioId, String actual, String nueva) => client.put(
+      '/usuarios/password', {'id': usuarioId, 'passwordActual': actual, 'nuevaPassword': nueva});
+
+  // ---------- Recuperación de contraseña (público) ----------
+
+  Future<Desafio2fa> solicitarRecuperacion(String correo) async {
+    final json = await client.post('/auth/recuperar/solicitar', {'correo': correo});
+    return Desafio2fa.fromJson(Map<String, dynamic>.from(json as Map));
+  }
+
+  Future<void> restablecerPassword(String desafioId, String codigo, String nueva) => client.post(
+      '/auth/recuperar/restablecer', {'desafioId': desafioId, 'codigo': codigo, 'nuevaPassword': nueva});
+
+  // ---------- ADMIN ----------
+
+  /// Abona saldo a una cuenta; devuelve el saldo nuevo.
+  Future<double> abonar(String numeroCuenta, double monto) async {
+    final json = await client.post('/cuentas/abono', {'numeroCuenta': numeroCuenta, 'monto': monto});
+    final saldo = _datos(json)['saldo'];
+    return saldo is num ? saldo.toDouble() : double.tryParse('$saldo') ?? 0;
+  }
+
+  Future<void> darDeBajaCliente(int clienteId) => client.delete('/clientes', {'id': clienteId});
+
+  Future<List<CompraPendiente>> comprasPendientes() async {
+    final json = await client.post('/pagos/conciliacion/pendientes');
+    return ((json is Map ? json['datos'] : null) as List? ?? [])
+        .whereType<Map<String, dynamic>>()
+        .map(CompraPendiente.new)
+        .toList();
+  }
+
+  /// Consulta con GestoPago (confirmTx) todas las pendientes; devuelve cuántas procesó.
+  Future<int> ejecutarConciliacion() async {
+    final n = _datos(await client.post('/pagos/conciliacion/ejecutar'))['transaccionesProcesadas'];
+    return n is num ? n.toInt() : 0;
+  }
+
+  /// Resolución manual: CONFIRMAR (se considera exitosa) o REVERTIR (se devuelve el saldo).
+  Future<String> resolverPendiente(int idTransaccion, String accion, String observacion) async {
+    final json = await client.post('/pagos/conciliacion/resolver',
+        {'idTransaccion': idTransaccion, 'accion': accion, 'observacion': observacion});
+    return '${_datos(json)['resultado'] ?? ''}';
   }
 
   Future<void> establecerPin(String numeroCuenta, String pinNuevo, {String? pinActual}) =>

@@ -125,4 +125,22 @@ class EntradasMaliciosasValidationTest {
         assertFalse(validar(r -> r.setAceptaTerminos(false)).isEmpty());
         assertFalse(validar(r -> r.setAceptaTerminos(null)).isEmpty());
     }
+
+    @Test
+    void soloSeAdmitenPersonasDeNacionalidadMexicana() {
+        assertTrue(validar(r -> r.setNacionalidad("Mexicana")).isEmpty());
+        assertTrue(validar(r -> r.setNacionalidad("mexicano")).isEmpty());
+        assertTrue(validar(r -> r.setNacionalidad(null)).isEmpty()); // el servicio la guarda como Mexicana
+        assertFalse(validar(r -> r.setNacionalidad("Estadounidense")).isEmpty());
+    }
+
+    @Test
+    void abonoTieneTopePorOperacion() {
+        AbonoCuentaRequest ok = AbonoCuentaRequest.builder().numeroCuenta("1234567890123456")
+                .monto(new BigDecimal("50000.00")).build();
+        AbonoCuentaRequest excesivo = AbonoCuentaRequest.builder().numeroCuenta("1234567890123456")
+                .monto(new BigDecimal("50000.01")).build();
+        assertTrue(validator.validate(ok).isEmpty());
+        assertFalse(validator.validate(excesivo).isEmpty());
+    }
 }

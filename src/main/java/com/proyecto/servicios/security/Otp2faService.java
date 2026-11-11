@@ -56,8 +56,21 @@ public class Otp2faService {
         this.ventanaEnviosMinutos = ventanaEnviosMinutos;
     }
 
+    /** Propósito del desafío de recuperación: sus códigos no sirven para iniciar sesión (y viceversa). */
+    public static final String PROPOSITO_RECUPERACION = "RECUPERACION";
+
     /** Genera un código, lo guarda (hash) y lo envía por correo. */
     public Desafio crear(Long usuarioId, String correoDestino, String plataforma, boolean cerrarSesionAnterior) {
+        return crear(usuarioId, correoDestino, plataforma, cerrarSesionAnterior, false);
+    }
+
+    /** Código para restablecer la contraseña: mismo resguardo (hash, vigencia, intentos, un uso), otro propósito. */
+    public Desafio crearRecuperacion(Long usuarioId, String correoDestino) {
+        return crear(usuarioId, correoDestino, PROPOSITO_RECUPERACION, false, true);
+    }
+
+    private Desafio crear(Long usuarioId, String correoDestino, String plataforma, boolean cerrarSesionAnterior,
+                          boolean recuperacion) {
         limitarEnvios(usuarioId);
 
         String codigo = String.format("%06d", random.nextInt(1_000_000));
@@ -66,7 +79,11 @@ public class Otp2faService {
         redis.opsForValue().set(CLAVE_DESAFIO + desafioId, valor, Duration.ofSeconds(ttlSegundos));
 
         try {
-            correo.enviar(correoDestino, codigo, Math.max(1, ttlSegundos / 60));
+            if (recuperacion) {
+                correo.enviarRecuperacion(correoDestino, codigo, Math.max(1, ttlSegundos / 60));
+            } else {
+                correo.enviar(correoDestino, codigo, Math.max(1, ttlSegundos / 60));
+            }
         } catch (RuntimeException ex) {
             redis.delete(CLAVE_DESAFIO + desafioId);
             // Se registra el motivo real (autenticación SMTP, host, red...) sin incluir el código ni credenciales.

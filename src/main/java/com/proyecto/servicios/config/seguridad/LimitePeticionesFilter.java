@@ -51,6 +51,7 @@ public class LimitePeticionesFilter extends OncePerRequestFilter {
                                   @Value("${app.limite.login-por-minuto:10}") int login,
                                   @Value("${app.limite.2fa-por-minuto:15}") int dosFactores,
                                   @Value("${app.limite.registro-por-hora:10}") int registro,
+                                  @Value("${app.limite.recuperacion-por-hora:10}") int recuperacion,
                                   @Value("${app.limite.catalogo-por-minuto:120}") int catalogo,
                                   @Value("${app.limite.general-por-minuto:300}") int generalPorMinuto) {
         this.redis = redis;
@@ -60,6 +61,7 @@ public class LimitePeticionesFilter extends OncePerRequestFilter {
                 new Regla("login", "POST", "/auth/login", login, minuto),
                 new Regla("2fa", "POST", "/auth/verificar-2fa", dosFactores, minuto),
                 new Regla("registro", "POST", "/clientes", registro, Duration.ofHours(1)),
+                new Regla("recuperacion", "POST", "/auth/recuperar/", recuperacion, Duration.ofHours(1)),
                 new Regla("catalogo", "GET", "/catalogos/", catalogo, minuto));
         this.general = new Regla("general", null, "/", generalPorMinuto, minuto);
     }

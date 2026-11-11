@@ -95,7 +95,7 @@ class FiltrosSeguridadTest {
     }
 
     private LimitePeticionesFilter limitador() {
-        return new LimitePeticionesFilter(redis, errores, 10, 15, 10, 120, 300);
+        return new LimitePeticionesFilter(redis, errores, 10, 15, 10, 10, 120, 300);
     }
 
     @Test

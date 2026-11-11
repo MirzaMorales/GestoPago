@@ -31,6 +31,15 @@ public class CorreoOtpSender {
      * @throws org.springframework.mail.MailException si el servidor de correo rechaza el envío
      */
     public void enviar(String destino, String codigo, int minutosVigencia) {
+        enviar(destino, codigo, minutosVigencia, false);
+    }
+
+    /** Código para restablecer la contraseña (mismo canal, otro texto). */
+    public void enviarRecuperacion(String destino, String codigo, int minutosVigencia) {
+        enviar(destino, codigo, minutosVigencia, true);
+    }
+
+    private void enviar(String destino, String codigo, int minutosVigencia, boolean recuperacion) {
         if (registrarCodigoEnLog) {
             // SOLO para desarrollo local sin SMTP (app.2fa.log-codigo=true). Nunca en producción.
             log.warn("[2FA-DEV] Código para {}: {}", destino, codigo);
@@ -45,10 +54,17 @@ public class CorreoOtpSender {
             mensaje.setFrom(remitente);
         }
         mensaje.setTo(destino);
-        mensaje.setSubject("GestoPago: tu código de verificación");
-        mensaje.setText("Tu código de verificación es: " + codigo + "\n\n"
-                + "Vence en " + minutosVigencia + " minutos y solo puede usarse una vez.\n"
-                + "Si no intentaste iniciar sesión, ignora este mensaje y cambia tu contraseña.");
+        if (recuperacion) {
+            mensaje.setSubject("GestoPago: código para restablecer tu contraseña");
+            mensaje.setText("Tu código para restablecer la contraseña es: " + codigo + "\n\n"
+                    + "Vence en " + minutosVigencia + " minutos y solo puede usarse una vez.\n"
+                    + "Si no lo solicitaste, ignora este mensaje: tu contraseña no cambiará.");
+        } else {
+            mensaje.setSubject("GestoPago: tu código de verificación");
+            mensaje.setText("Tu código de verificación es: " + codigo + "\n\n"
+                    + "Vence en " + minutosVigencia + " minutos y solo puede usarse una vez.\n"
+                    + "Si no intentaste iniciar sesión, ignora este mensaje y cambia tu contraseña.");
+        }
         sender.send(mensaje);
     }
 }

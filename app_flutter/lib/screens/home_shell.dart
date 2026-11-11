@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../state/session.dart';
 import 'account_screen.dart';
+import 'admin/clientes_admin_screen.dart';
+import 'admin/pendientes_admin_screen.dart';
 import 'catalog_screen.dart';
 import 'history_screen.dart';
 
@@ -22,6 +24,20 @@ class _HomeShellState extends State<HomeShell> {
   late final bool _cliente = widget.session.usuario?.esCliente ?? false;
 
   late final List<({IconData icono, IconData activo, String texto, Widget vista})> _secciones = [
+    if (!_cliente) ...[
+      (
+        icono: Icons.people_outline,
+        activo: Icons.people,
+        texto: 'Clientes',
+        vista: ClientesAdminScreen(session: widget.session),
+      ),
+      (
+        icono: Icons.pending_actions_outlined,
+        activo: Icons.pending_actions,
+        texto: 'Pendientes',
+        vista: PendientesAdminScreen(session: widget.session),
+      ),
+    ],
     (
       icono: Icons.storefront_outlined,
       activo: Icons.storefront,

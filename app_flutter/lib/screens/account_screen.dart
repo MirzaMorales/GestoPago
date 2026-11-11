@@ -7,7 +7,10 @@ import '../legal/documentos_legales.dart';
 import '../legal/legal_screen.dart';
 import '../state/session.dart';
 import '../ui/theme.dart';
+import '../ui/filtros_entrada.dart';
 import '../ui/widgets.dart';
+import 'auth/auth_common.dart';
+import 'editar_datos_screen.dart';
 
 /// Datos del usuario, cuentas con saldo, PIN de compras y cierre de sesión.
 class AccountScreen extends StatefulWidget {
@@ -32,7 +35,7 @@ class _AccountScreenState extends State<AccountScreen> {
 
   void _cargar() {
     if (u.esCliente && u.clienteId != null) {
-      setState(() => _perfil = widget.session.api.perfil(u.clienteId!));
+      setState(() { _perfil = widget.session.api.perfil(u.clienteId!); });
     }
   }
 
@@ -144,6 +147,22 @@ class _AccountScreenState extends State<AccountScreen> {
                               'Tu cuenta usa verificación en dos pasos y solo permite una sesión activa a la vez.'),
                         ),
                         const Divider(height: 1, indent: 16, endIndent: 16),
+                        if (u.esCliente && u.clienteId != null)
+                          ListTile(
+                            leading: const Icon(Icons.edit_note_outlined),
+                            title: const Text('Editar mis datos'),
+                            subtitle: const Text('Teléfono, empleo y domicilio'),
+                            trailing: const Icon(Icons.chevron_right),
+                            onTap: _editarDatos,
+                          ),
+                        ListTile(
+                          leading: const Icon(Icons.password_outlined),
+                          title: const Text('Cambiar contraseña'),
+                          subtitle: const Text('Necesitas tu contraseña actual'),
+                          trailing: const Icon(Icons.chevron_right),
+                          onTap: _cambiarPassword,
+                        ),
+                        const Divider(height: 1, indent: 16, endIndent: 16),
                         ListTile(
                           leading: const Icon(Icons.privacy_tip_outlined),
                           title: const Text('Aviso de Privacidad'),
@@ -175,6 +194,20 @@ class _AccountScreenState extends State<AccountScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _editarDatos() async {
+    final guardado = await Navigator.of(context).push<bool>(
+        MaterialPageRoute(builder: (_) => EditarDatosScreen(session: widget.session)));
+    if (guardado == true && mounted) _cargar();
+  }
+
+  Future<void> _cambiarPassword() async {
+    final cambiada = await showDialog<bool>(
+      context: context,
+      builder: (_) => _DialogoPassword(session: widget.session),
+    );
+    if (cambiada == true && mounted) mostrarSnack(context, 'Tu contraseña se actualizó correctamente.');
   }
 
   Future<void> _cambiarPin(Cuenta c) async {
@@ -304,6 +337,8 @@ class _DialogoPinState extends State<_DialogoPin> {
         constraints: const BoxConstraints(maxWidth: 380),
         child: Form(
           key: _form,
+          // Validación en tiempo real: el error aparece al escribir, no hasta enviar.
+          autovalidateMode: AutovalidateMode.onUserInteraction,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -343,6 +378,129 @@ class _DialogoPinState extends State<_DialogoPin> {
                 Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
               ],
             ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
+        FilledButton(
+          onPressed: _guardando ? null : _guardar,
+          child: _guardando
+              ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+              : const Text('Guardar'),
+        ),
+      ],
+    );
+  }
+}
+
+/// Cambio de contraseña con la actual (PUT /usuarios/password).
+class _DialogoPassword extends StatefulWidget {
+  const _DialogoPassword({required this.session});
+
+  final Session session;
+
+  @override
+  State<_DialogoPassword> createState() => _DialogoPasswordState();
+}
+
+class _DialogoPasswordState extends State<_DialogoPassword> {
+  final _form = GlobalKey<FormState>();
+  final _actual = TextEditingController();
+  final _nueva = TextEditingController();
+  final _confirma = TextEditingController();
+  bool _ocultar = true;
+  bool _guardando = false;
+  String? _error;
+
+  @override
+  void dispose() {
+    _actual.dispose();
+    _nueva.dispose();
+    _confirma.dispose();
+    super.dispose();
+  }
+
+  Future<void> _guardar() async {
+    if (!_form.currentState!.validate()) return;
+    setState(() {
+      _guardando = true;
+      _error = null;
+    });
+    try {
+      await widget.session.api.cambiarPassword(widget.session.usuario!.usuarioId, _actual.text, _nueva.text);
+      if (mounted) Navigator.pop(context, true);
+    } on ApiException catch (e) {
+      if (mounted) setState(() => _error = e.detalles.values.isNotEmpty ? e.detalles.values.first : e.mensaje);
+    } finally {
+      if (mounted) setState(() => _guardando = false);
+    }
+  }
+
+  InputDecoration _deco(String etiqueta, IconData icono) => InputDecoration(
+        labelText: etiqueta,
+        counterText: '',
+        prefixIcon: Icon(icono),
+        suffixIcon: IconButton(
+          tooltip: _ocultar ? 'Mostrar contraseñas' : 'Ocultar contraseñas',
+          icon: Icon(_ocultar ? Icons.visibility_outlined : Icons.visibility_off_outlined),
+          onPressed: () => setState(() => _ocultar = !_ocultar),
+        ),
+      );
+
+  @override
+  Widget build(BuildContext context) {
+    final formato = [FiltrosEntrada.sinControl];
+    return AlertDialog(
+      title: const Text('Cambiar contraseña'),
+      content: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 420),
+        child: Form(
+          key: _form,
+          autovalidateMode: AutovalidateMode.onUserInteraction,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                TextFormField(
+                  controller: _actual,
+                  obscureText: _ocultar,
+                  maxLength: FiltrosEntrada.maxPassword,
+                  inputFormatters: formato,
+                  autofillHints: const [AutofillHints.password],
+                  decoration: _deco('Contraseña actual', Icons.lock_outline),
+                  validator: (v) => (v ?? '').isEmpty ? 'Escribe tu contraseña actual' : null,
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _nueva,
+                  obscureText: _ocultar,
+                  maxLength: FiltrosEntrada.maxPassword,
+                  inputFormatters: formato,
+                  autofillHints: const [AutofillHints.newPassword],
+                  decoration: _deco('Contraseña nueva', Icons.lock_reset_outlined),
+                  onChanged: (_) => setState(() {}),
+                  validator: (v) => validarContrasenaSegura(v) ??
+                      (v == _actual.text ? 'Debe ser distinta de la actual' : null),
+                ),
+                const SizedBox(height: 8),
+                ReglasContrasena(valor: _nueva.text),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _confirma,
+                  obscureText: _ocultar,
+                  maxLength: FiltrosEntrada.maxPassword,
+                  inputFormatters: formato,
+                  decoration: _deco('Confirma la contraseña nueva', Icons.lock_reset_outlined),
+                  validator: (v) => v == _nueva.text ? null : 'Las contraseñas no coinciden',
+                ),
+                if (_error != null) ...[
+                  const SizedBox(height: 12),
+                  Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+                ],
+              ],
+            ),
           ),
         ),
       ),
