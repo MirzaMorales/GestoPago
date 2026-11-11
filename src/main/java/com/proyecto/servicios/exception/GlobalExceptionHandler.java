@@ -43,7 +43,20 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<GenericResponse<Void>> handleUnreadableMessage(HttpMessageNotReadableException ex) {
+        // Campos que la API no conoce (p. ej. "rol":"ADMIN" en un registro): se rechazan y se dice cuál, sin más detalle.
+        if (ex.getCause() instanceof com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException campo) {
+            Map<String, String> detalles = new HashMap<>();
+            detalles.put(recortar(campo.getPropertyName()), "Campo no permitido");
+            return response(HttpStatus.BAD_REQUEST, "La solicitud contiene campos no permitidos", detalles);
+        }
         return response(HttpStatus.BAD_REQUEST, "El cuerpo de la solicitud está vacío o tiene un formato inválido");
+    }
+
+    /** Evita reflejar nombres enormes o con caracteres extraños enviados por el cliente. */
+    private static String recortar(String valor) {
+        if (valor == null) return "campo";
+        String limpio = valor.replaceAll("[^A-Za-z0-9_.]", "");
+        return limpio.isEmpty() ? "campo" : limpio.substring(0, Math.min(limpio.length(), 50));
     }
 
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)

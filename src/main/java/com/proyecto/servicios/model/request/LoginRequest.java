@@ -18,9 +18,11 @@ public class LoginRequest {
     @NotBlank(message = "El correo electrónico es obligatorio")
     @Email(message = "El formato del correo electrónico es inválido")
     @Size(max = 100, message = "El correo electrónico no puede exceder 100 caracteres")
+    @Pattern(regexp = PatronesSeguros.CORREO, message = PatronesSeguros.MENSAJE_CORREO)
     private String correo;
 
     @NotBlank(message = "La contraseña es obligatoria")
+    @Size(max = PatronesSeguros.PASSWORD_MAX, message = PatronesSeguros.MENSAJE_PASSWORD_MAX)
     private String password;
 
     /** Plataforma desde la que se inicia sesión: WEB o MOVIL. Si se omite se asume WEB. */

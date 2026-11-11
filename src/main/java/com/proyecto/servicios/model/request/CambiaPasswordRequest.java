@@ -1,5 +1,6 @@
 package com.proyecto.servicios.model.request;
 
+import jakarta.validation.constraints.Size;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
@@ -20,6 +21,7 @@ public class CambiaPasswordRequest {
     private Long id;
 
     @NotBlank(message = "La contraseña actual es obligatoria")
+    @Size(max = PatronesSeguros.PASSWORD_MAX, message = PatronesSeguros.MENSAJE_PASSWORD_MAX)
     private String passwordActual;
 
     @NotBlank(message = "La nueva contraseña es obligatoria")
@@ -27,5 +29,6 @@ public class CambiaPasswordRequest {
             regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[^A-Za-z0-9\\s]).{8,}$",
             message = "La nueva contraseña debe contener mínimo 8 caracteres, al menos una mayúscula, una minúscula, un número y un carácter especial"
     )
+    @Size(max = PatronesSeguros.PASSWORD_MAX, message = PatronesSeguros.MENSAJE_PASSWORD_MAX)
     private String nuevaPassword;
 }

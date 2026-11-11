@@ -105,4 +105,18 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Crea tu cuenta'), findsOneWidget);
   });
+
+  testWidgets('los campos del registro no dejan escribir HTML ni scripts', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(900, 1600));
+    await tester.pumpWidget(_app(Session(), ModoAuth.registro));
+
+    Finder campo(String etiqueta) => find.widgetWithText(TextFormField, etiqueta);
+    await tester.enterText(campo('Nombre'), '<script>Ana</script>');
+    await tester.enterText(campo('CURP'), '<img src=x>');
+    await tester.pump();
+
+    expect(find.text('scriptAnascript'), findsOneWidget);
+    expect(find.textContaining('<'), findsNothing);
+    expect(find.textContaining('>'), findsNothing);
+  });
 }

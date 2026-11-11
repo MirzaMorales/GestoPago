@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import '../../api/api_client.dart';
 import '../../api/models.dart';
 import '../../state/session.dart';
+import '../../ui/filtros_entrada.dart';
 import '../../ui/widgets.dart';
 import 'auth_common.dart';
 
@@ -145,16 +146,20 @@ class _LoginPanelState extends State<LoginPanel> {
             const SizedBox(height: 24),
             TextFormField(
               controller: _correo,
+              maxLength: 100,
+              inputFormatters: [FiltrosEntrada.correo],
               keyboardType: TextInputType.emailAddress,
               autofillHints: const [AutofillHints.email],
               textInputAction: TextInputAction.next,
               decoration: const InputDecoration(
-                  labelText: 'Correo electrónico', prefixIcon: Icon(Icons.mail_outline)),
+                  labelText: 'Correo electrónico', prefixIcon: Icon(Icons.mail_outline), counterText: ''),
               validator: validarCorreo,
             ),
             const SizedBox(height: 16),
             TextFormField(
               controller: _password,
+              maxLength: FiltrosEntrada.maxPassword,
+              inputFormatters: [FiltrosEntrada.sinControl],
               obscureText: _ocultar,
               autofocus: widget.correoInicial != null,
               autofillHints: const [AutofillHints.password],
@@ -162,6 +167,7 @@ class _LoginPanelState extends State<LoginPanel> {
               onFieldSubmitted: (_) => _ingresar(),
               decoration: InputDecoration(
                 labelText: 'Contraseña',
+                counterText: '',
                 prefixIcon: const Icon(Icons.lock_outline),
                 suffixIcon: IconButton(
                   tooltip: _ocultar ? 'Mostrar contraseña' : 'Ocultar contraseña',

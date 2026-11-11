@@ -1,5 +1,6 @@
 package com.proyecto.servicios.model.request;
 
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -24,5 +25,6 @@ public class ResolverConciliacionRequest {
 
     @NotBlank(message = "La observación es obligatoria")
     @Size(max = 200, message = "La observación admite máximo 200 caracteres")
+    @Pattern(regexp = PatronesSeguros.TEXTO_LIBRE, message = PatronesSeguros.MENSAJE_TEXTO_LIBRE)
     private String observacion;
 }
