@@ -6,6 +6,7 @@ import com.proyecto.servicios.exception.CodigoErrorPago;
 import com.proyecto.servicios.exception.PagoException;
 import com.proyecto.servicios.model.gestopago.SendTxResponse;
 import com.proyecto.servicios.service.GestoPagoTokenService;
+import com.proyecto.servicios.util.AesDescifradoPrueba;
 import com.proyecto.servicios.util.AesEncryption;
 import feign.FeignException;
 import org.junit.jupiter.api.BeforeEach;
@@ -69,7 +70,7 @@ class GestoPagoTxServiceTest {
         String signed = service.firmar("{\"a\":1}");
 
         assertNotEquals("{\"a\":1}", signed);
-        assertEquals("{\"a\":1}", AesEncryption.decrypt(signed, IV, KEY));
+        assertEquals("{\"a\":1}", AesDescifradoPrueba.decrypt(signed, IV, KEY));
     }
 
     @Test
@@ -168,7 +169,7 @@ class GestoPagoTxServiceTest {
         ArgumentCaptor<MultiValueMap<String, String>> captor = ArgumentCaptor.forClass(MultiValueMap.class);
         verify(client).sendTxRaw(eq("Bearer tok"), eq(null), captor.capture());
         assertNotNull(captor.getValue().getFirst("random"));
-        assertEquals(PAYLOAD, AesEncryption.decrypt(captor.getValue().getFirst("signed"), IV, KEY));
+        assertEquals(PAYLOAD, AesDescifradoPrueba.decrypt(captor.getValue().getFirst("signed"), IV, KEY));
     }
 
     @Test
@@ -247,7 +248,7 @@ class GestoPagoTxServiceTest {
         @SuppressWarnings("unchecked")
         ArgumentCaptor<MultiValueMap<String, String>> captor = ArgumentCaptor.forClass(MultiValueMap.class);
         verify(client).confirmTxRaw(eq("Bearer tok"), any(), captor.capture());
-        assertEquals(PAYLOAD, AesEncryption.decrypt(captor.getValue().getFirst("signed"), IV, KEY));
+        assertEquals(PAYLOAD, AesDescifradoPrueba.decrypt(captor.getValue().getFirst("signed"), IV, KEY));
         verify(client, never()).sendTxRaw(any(), any(), any());
     }
 
