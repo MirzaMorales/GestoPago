@@ -37,7 +37,10 @@ pipeline {
             post {
                 always {
                     junit allowEmptyResults: true, testResults: 'build/test-results/test/*.xml'
-                    recordCoverage tools: [[parser: 'JACOCO', pattern: 'build/reports/jacoco/test/jacocoTestReport.xml']], sourceCodeRetention: 'NEVER'
+                    // Incluye el código que genera MapStruct (*MapperImpl) para que la cobertura lo encuentre
+                    recordCoverage tools: [[parser: 'JACOCO', pattern: 'build/reports/jacoco/test/jacocoTestReport.xml']],
+                            sourceDirectories: [[path: 'src/main/java'], [path: 'build/generated/sources/annotationProcessor/java/main']],
+                            sourceCodeRetention: 'NEVER'
                 }
             }
         }
@@ -62,10 +65,34 @@ pipeline {
 
         stage('Análisis SonarQube') {
             steps {
-                // Requiere la credencial "sonar-token" (Secret text) en Jenkins.
-                // sonar.qualitygate.wait=true hace fallar la etapa si no se cumple el Quality Gate.
+                // SonarScanner CLI configurado en Jenkins (Tools -> sonar-scanner). Se usa en lugar del plugin de Gradle
+                // del proyecto (4.0.0.2929), que no es compatible con Gradle 9.
+                // Reutiliza lo que generó la etapa del backend: clases compiladas, resultados JUnit y cobertura JaCoCo.
+                // Requiere la credencial "sonar-token" (Secret text); sonar.qualitygate.wait=true falla si no se cumple el Quality Gate.
+                script {
+                    env.SCANNER_HOME = tool 'sonar-scanner'
+                }
                 withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
-                    sh './gradlew --no-daemon --console=plain sonar -Dsonar.host.url=http://sonarqube:9000 -Dsonar.token=$SONAR_TOKEN -Dsonar.qualitygate.wait=true'
+                    sh '''
+                        "$SCANNER_HOME/bin/sonar-scanner" \
+                          -Dsonar.host.url=http://sonarqube:9000 \
+                          -Dsonar.token="$SONAR_TOKEN" \
+                          -Dsonar.projectKey=gestopago \
+                          -Dsonar.projectName=GestoPago \
+                          -Dsonar.sourceEncoding=UTF-8 \
+                          -Dsonar.sources=src/main/java,src/main/resources \
+                          -Dsonar.tests=src/test/java \
+                          -Dsonar.java.source=17 \
+                          -Dsonar.java.binaries=build/classes/java/main \
+                          -Dsonar.java.test.binaries=build/classes/java/test \
+                          -Dsonar.java.libraries="$HOME/.gradle/caches/modules-2/files-2.1/**/*.jar" \
+                          -Dsonar.java.test.libraries="$HOME/.gradle/caches/modules-2/files-2.1/**/*.jar" \
+                          -Dsonar.junit.reportPaths=build/test-results/test \
+                          -Dsonar.coverage.jacoco.xmlReportPaths=build/reports/jacoco/test/jacocoTestReport.xml \
+                          -Dsonar.coverage.exclusions="**/App.java,**/model/**,**/entity/**,**/enums/**" \
+                          -Dsonar.qualitygate.wait=true \
+                          -Dsonar.qualitygate.timeout=300
+                    '''
                 }
             }
         }
