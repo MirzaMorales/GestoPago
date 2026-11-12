@@ -1,9 +1,10 @@
 pipeline {
     agent any
 
-    // Los nombres deben coincidir con Manage Jenkins -> Tools
+    // Los nombres deben coincidir con Manage Jenkins -> Tools.
+    // JDK 17: el mismo que desarrollo y producción (Dockerfile); Lombok 1.18.26 no compila con JDK 21.
     tools {
-        jdk 'jdk21'
+        jdk 'jdk17'
     }
 
     environment {
