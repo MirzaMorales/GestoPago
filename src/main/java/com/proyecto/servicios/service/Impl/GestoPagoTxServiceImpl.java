@@ -15,12 +15,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
+import com.proyecto.servicios.util.XmlSeguro;
 import org.w3c.dom.Document;
 import org.w3c.dom.NodeList;
-import org.xml.sax.InputSource;
 
-import javax.xml.parsers.DocumentBuilderFactory;
-import java.io.StringReader;
 import java.math.BigDecimal;
 import java.security.GeneralSecurityException;
 import java.util.function.BiFunction;
@@ -120,9 +118,7 @@ public class GestoPagoTxServiceImpl implements GestoPagoTxService {
             throw new PagoException(CodigoErrorPago.GESTOPAGO_RESPUESTA_INVALIDA);
         }
         try {
-            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-            factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
-            Document doc = factory.newDocumentBuilder().parse(new InputSource(new StringReader(rawXml)));
+            Document doc = XmlSeguro.parsear(rawXml); // sin DOCTYPE ni entidades externas (XXE)
 
             String codigo = texto(doc, "CODIGO");
             if (codigo == null) {

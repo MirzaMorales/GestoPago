@@ -10,6 +10,7 @@ import com.proyecto.servicios.service.GestoPagoTokenService;
 import com.proyecto.servicios.service.LimiteConsultasProveedor;
 import com.proyecto.servicios.service.ProductoService;
 import com.proyecto.servicios.mapper.ProductoMapper;
+import com.proyecto.servicios.util.XmlSeguro;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
@@ -20,11 +21,7 @@ import org.springframework.stereotype.Service;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
-import org.xml.sax.InputSource;
 
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import java.io.StringReader;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -110,10 +107,8 @@ public class ProductoServiceImpl implements ProductoService {
             List<ProductoDTO> listaProductos = new ArrayList<>();
             String mensajeTexto = "Operacion realizada con exito";
 
-            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-            factory.setNamespaceAware(false);
-            DocumentBuilder builder = factory.newDocumentBuilder();
-            Document doc = builder.parse(new InputSource(new StringReader(rawXml)));
+            // XML del proveedor leído sin DOCTYPE ni entidades externas (protección XXE)
+            Document doc = XmlSeguro.parsear(rawXml);
 
             // Extraer mensaje (<TEXTO> o <TEXT>)
             NodeList textoNodes = doc.getElementsByTagName("TEXTO");

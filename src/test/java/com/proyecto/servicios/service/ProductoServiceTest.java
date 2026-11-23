@@ -115,6 +115,25 @@ class ProductoServiceTest {
     }
 
     @Test
+    void testXmlConEntidadExternaSeRechazaSinLeerArchivos() {
+        // Un XML manipulado (XXE) no debe leer archivos del servidor ni guardarse como catálogo.
+        String xxe = "<?xml version='1.0'?><!DOCTYPE r [<!ENTITY x SYSTEM 'file:///etc/passwd'>]>"
+                + "<RESPONSE><MENSAJE><CODIGO>01</CODIGO><TEXTO>&x;</TEXTO></MENSAJE><PRODUCTOS>"
+                + "<producto servicio=\"&x;\" producto=\"x\" idServicio=\"1\" idProducto=\"1\" tipoFront=\"1\" precio=\"1\"/>"
+                + "</PRODUCTOS></RESPONSE>";
+        GestoPagoToken token = new GestoPagoToken();
+        token.setToken("mock_jwt_token");
+        when(tokenService.obtenerTokenActivo(anyInt(), anyString())).thenReturn(Optional.of(token));
+        when(gestoPagoServiceClient.getProductListRaw(anyString())).thenReturn(xxe);
+
+        ProductoListResponse response = productoService.obtenerListaProductos();
+
+        assertEquals(1, response.getCodigo());
+        assertTrue(response.getProductos().isEmpty());
+        verify(productoRepository, never()).saveAll(any());
+    }
+
+    @Test
     void testRespuestaSinProductosNoSeGuardaNiSeReportaComoExito() {
         String xml = "<RESPONSE><MENSAJE><CODIGO>99</CODIGO><TEXTO>Limite diario de consultas alcanzado</TEXTO></MENSAJE></RESPONSE>";
         GestoPagoToken token = new GestoPagoToken();
