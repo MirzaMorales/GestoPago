@@ -2,7 +2,9 @@ package com.proyecto.servicios.controller;
 
 import com.proyecto.servicios.model.GenericResponse;
 import com.proyecto.servicios.model.response.ColoniaResponse;
+import com.proyecto.servicios.model.response.OcupacionResponse;
 import com.proyecto.servicios.service.CatalogoDomicilioService;
+import com.proyecto.servicios.service.CatalogoOcupacionService;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
@@ -31,9 +33,11 @@ public class CatalogoController {
     private static final CacheControl CACHE = CacheControl.maxAge(1, TimeUnit.DAYS).cachePublic();
 
     private final CatalogoDomicilioService catalogo;
+    private final CatalogoOcupacionService ocupaciones;
 
-    public CatalogoController(CatalogoDomicilioService catalogo) {
+    public CatalogoController(CatalogoDomicilioService catalogo, CatalogoOcupacionService ocupaciones) {
         this.catalogo = catalogo;
+        this.ocupaciones = ocupaciones;
     }
 
     /** Colonias de un código postal, con su municipio y estado. Lista vacía si el código no existe. */
@@ -42,6 +46,12 @@ public class CatalogoController {
             @PathVariable @Pattern(regexp = "^\\d{5}$", message = "El código postal debe contener 5 dígitos")
             String codigoPostal) {
         return ok("Colonias del código postal", catalogo.porCodigoPostal(codigoPostal));
+    }
+
+    /** Catálogo de ocupaciones agrupadas por división del SINCO 2019 (INEGI). */
+    @GetMapping("/ocupaciones")
+    public ResponseEntity<GenericResponse<List<OcupacionResponse>>> ocupaciones() {
+        return ok("Ocupaciones", ocupaciones.listar());
     }
 
     @GetMapping("/estados")

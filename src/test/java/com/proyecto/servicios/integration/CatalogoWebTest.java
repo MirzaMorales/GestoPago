@@ -42,6 +42,7 @@ class CatalogoWebTest {
     @Autowired private MockMvc mvc;
 
     @MockBean private CatalogoDomicilioService catalogo;
+    @MockBean private com.proyecto.servicios.service.CatalogoOcupacionService ocupaciones;
     @MockBean private UsuarioRepository usuarioRepository;
     @MockBean private StringRedisTemplate redis;
 
@@ -81,6 +82,17 @@ class CatalogoWebTest {
         mvc.perform(get("/catalogos/colonias").param("estado", "Guanajuato").param("municipio", "San Miguel de Allende"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.datos[0].codigoPostal").value("37700"));
+    }
+
+    @Test
+    void ocupacionesEsPublicoYDevuelveNombreYGrupo() throws Exception {
+        when(ocupaciones.listar()).thenReturn(List.of(
+                new com.proyecto.servicios.model.response.OcupacionResponse("Médico(a)", "Profesionistas y técnicos")));
+
+        mvc.perform(get("/catalogos/ocupaciones"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.datos[0].nombre").value("Médico(a)"))
+                .andExpect(jsonPath("$.datos[0].grupo").value("Profesionistas y técnicos"));
     }
 
     @Test

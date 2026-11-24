@@ -55,6 +55,9 @@ class ClienteServiceTest {
     @Mock
     private CatalogoDomicilioService catalogoDomicilio;
 
+    @Mock
+    private CatalogoOcupacionService catalogoOcupacion;
+
     @InjectMocks
     private ClienteServiceImpl clienteService;
 
@@ -168,6 +171,27 @@ class ClienteServiceTest {
         );
 
         assertTrue(exception.getMessage().contains("mayor de edad"));
+        verify(clienteRepository, never()).save(any());
+    }
+
+    @Test
+    void testRegistrarClienteConCurpDeOtraFechaNoSeGuarda() {
+        request.setCurp("PEGJ960520HDFRMN01");
+
+        ValidacionNegocioException ex = assertThrows(ValidacionNegocioException.class,
+                () -> clienteService.registrarCliente(request));
+
+        assertEquals("La CURP no coincide con la fecha de nacimiento", ex.getMessage());
+        verify(clienteRepository, never()).save(any());
+    }
+
+    @Test
+    void testRegistrarClienteConOcupacionFueraDelCatalogoNoSeGuarda() {
+        doThrow(new ValidacionNegocioException(CatalogoOcupacionService.MENSAJE_OCUPACION_INVALIDA))
+                .when(catalogoOcupacion).validar(any());
+
+        assertThrows(ValidacionNegocioException.class, () -> clienteService.registrarCliente(request));
+        verify(catalogoOcupacion).validar("Ingeniero");
         verify(clienteRepository, never()).save(any());
     }
 

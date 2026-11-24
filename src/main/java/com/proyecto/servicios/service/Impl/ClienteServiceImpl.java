@@ -9,6 +9,8 @@ import com.proyecto.servicios.model.request.RegistroClienteRequest;
 import com.proyecto.servicios.model.response.ClienteResponse;
 import com.proyecto.servicios.repositorys.*;
 import com.proyecto.servicios.service.CatalogoDomicilioService;
+import com.proyecto.servicios.service.CatalogoOcupacionService;
+import com.proyecto.servicios.service.ValidadorIdentidad;
 import com.proyecto.servicios.service.ClienteService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -48,6 +50,9 @@ public class ClienteServiceImpl implements ClienteService {
     @Autowired
     private CatalogoDomicilioService catalogoDomicilio;
 
+    @Autowired
+    private CatalogoOcupacionService catalogoOcupacion;
+
     /** Versión vigente de los Términos y Condiciones y del Aviso de Privacidad (la app la muestra y la envía). */
     @Value("${app.legal.version:2026-11-10}")
     private String versionTerminosVigente = "2026-11-10";
@@ -63,6 +68,19 @@ public class ClienteServiceImpl implements ClienteService {
         if (edad < 18) {
             throw new ValidacionNegocioException("El cliente debe ser mayor de edad (18 años o más)");
         }
+        if (edad > 120) {
+            throw new ValidacionNegocioException("La fecha de nacimiento no es válida");
+        }
+
+        // 1.0 CURP y RFC coherentes con la fecha de nacimiento y el sexo; ocupación del catálogo
+        String errorIdentidad = ValidadorIdentidad.errorCurp(request.getCurp(), request.getFechaNacimiento(), request.getSexo());
+        if (errorIdentidad == null) {
+            errorIdentidad = ValidadorIdentidad.errorRfc(request.getRfc().trim().toUpperCase(), request.getFechaNacimiento());
+        }
+        if (errorIdentidad != null) {
+            throw new ValidacionNegocioException(errorIdentidad);
+        }
+        catalogoOcupacion.validar(request.getOcupacion());
 
         // 1.1 El domicilio debe existir en el catálogo nacional de códigos postales (SEPOMEX)
         catalogoDomicilio.validar(request.getDomicilio());
@@ -157,6 +175,7 @@ public class ClienteServiceImpl implements ClienteService {
         if (Period.between(request.getFechaNacimiento(), LocalDate.now()).getYears() < 18) {
             throw new ValidacionNegocioException("El cliente debe ser mayor de edad (18 años o más)");
         }
+        catalogoOcupacion.validar(request.getOcupacion());
 
         // Si el correo cambió, verificar que no esté usado por otro cliente/usuario
         String nuevoCorreo = request.getCorreo().trim().toLowerCase();

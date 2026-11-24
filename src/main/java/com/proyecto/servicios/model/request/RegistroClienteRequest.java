@@ -17,21 +17,22 @@ import java.time.LocalDate;
 public class RegistroClienteRequest {
 
     @NotBlank(message = "El nombre es obligatorio")
-    @Size(min = 2, max = 50, message = "El nombre debe tener entre 2 y 50 caracteres")
+    @Size(min = 3, max = 50, message = "El nombre debe tener entre 3 y 50 caracteres")
     @Pattern(regexp = "^[\\p{L}\\p{M}\\s.'’\\-]+$", message = "El nombre contiene caracteres inválidos")
     private String nombre;
 
     @Size(max = 50, message = "El segundo nombre no puede exceder 50 caracteres")
     @Pattern(regexp = "^[\\p{L}\\p{M}\\s.'’\\-]*$", message = "El segundo nombre contiene caracteres inválidos")
+    @Pattern(regexp = "^$|^.{3,}$", message = "El segundo nombre debe tener al menos 3 caracteres")
     private String segundoNombre;
 
     @NotBlank(message = "El apellido paterno es obligatorio")
-    @Size(min = 2, max = 50, message = "El apellido paterno debe tener entre 2 y 50 caracteres")
+    @Size(min = 3, max = 50, message = "El apellido paterno debe tener entre 3 y 50 caracteres")
     @Pattern(regexp = "^[\\p{L}\\p{M}\\s.'’\\-]+$", message = "El apellido paterno contiene caracteres inválidos")
     private String apellidoPaterno;
 
     @NotBlank(message = "El apellido materno es obligatorio")
-    @Size(min = 2, max = 50, message = "El apellido materno debe tener entre 2 y 50 caracteres")
+    @Size(min = 3, max = 50, message = "El apellido materno debe tener entre 3 y 50 caracteres")
     @Pattern(regexp = "^[\\p{L}\\p{M}\\s.'’\\-]+$", message = "El apellido materno contiene caracteres inválidos")
     private String apellidoMaterno;
 
@@ -76,12 +77,12 @@ public class RegistroClienteRequest {
     private String telefonoAlternativo;
 
     @NotBlank(message = "La ocupación es obligatoria")
-    @Size(max = 100, message = "La ocupación no puede exceder 100 caracteres")
+    @Size(min = 3, max = 100, message = "La ocupación debe tener entre 3 y 100 caracteres")
     @Pattern(regexp = PatronesSeguros.TEXTO_LIBRE, message = PatronesSeguros.MENSAJE_TEXTO_LIBRE)
     private String ocupacion;
 
     @NotBlank(message = "La empresa es obligatoria")
-    @Size(max = 100, message = "La empresa no puede exceder 100 caracteres")
+    @Size(min = 3, max = 100, message = "La empresa debe tener entre 3 y 100 caracteres")
     @Pattern(regexp = PatronesSeguros.TEXTO_LIBRE, message = PatronesSeguros.MENSAJE_TEXTO_LIBRE)
     private String empresa;
 
