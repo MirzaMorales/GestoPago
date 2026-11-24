@@ -108,8 +108,7 @@ class _ProductScreenState extends State<ProductScreen> {
     if (!mounted) return;
 
     // 3) Resultado claro: exitosa, rechazada, pendiente o error de comunicación.
-    final exito = await Navigator.of(context).push<bool>(MaterialPageRoute(
-      fullscreenDialog: true,
+    final accion = await Navigator.of(context).push<AccionResultado>(MaterialPageRoute(
       builder: (_) => PurchaseResultScreen(
         session: widget.session,
         producto: p,
@@ -120,10 +119,14 @@ class _ProductScreenState extends State<ProductScreen> {
       ),
     ));
     if (!mounted) return;
-    if (exito == true) {
-      Navigator.of(context).pop(true);
-    } else {
-      _cargarPerfil(); // refresca el saldo
+    switch (accion) {
+      case AccionResultado.verCompras:
+        Navigator.of(context).pop(true); // el catálogo abre "Mis compras"
+      case AccionResultado.catalogo:
+        Navigator.of(context).pop(false);
+      case AccionResultado.reintentar:
+      case null:
+        _cargarPerfil(); // se queda en el producto con los datos capturados y el saldo actualizado
     }
   }
 

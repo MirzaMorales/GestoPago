@@ -6,7 +6,7 @@ import '../api/models.dart';
 import '../legal/documentos_legales.dart';
 import '../legal/legal_screen.dart';
 import '../state/session.dart';
-import '../ui/theme.dart';
+import '../ui/tarjeta_cuenta.dart';
 import '../ui/filtros_entrada.dart';
 import '../ui/widgets.dart';
 import 'auth/auth_common.dart';
@@ -128,6 +128,7 @@ class _AccountScreenState extends State<AccountScreen> {
                                 padding: const EdgeInsets.only(bottom: 10),
                                 child: _TarjetaCuenta(
                                   cuenta: c,
+                                  titular: snap.data!.nombreCompleto,
                                   onPin: () => _cambiarPin(c),
                                 ),
                               ),
@@ -219,63 +220,28 @@ class _AccountScreenState extends State<AccountScreen> {
   }
 }
 
+/// Tarjeta realista de la cuenta con su acción de PIN debajo.
 class _TarjetaCuenta extends StatelessWidget {
-  const _TarjetaCuenta({required this.cuenta, required this.onPin});
+  const _TarjetaCuenta({required this.cuenta, required this.titular, required this.onPin});
 
   final Cuenta cuenta;
+  final String titular;
   final VoidCallback onPin;
 
   @override
   Widget build(BuildContext context) {
-    final t = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
-        gradient: LinearGradient(
-          colors: [t.colorScheme.primary, t.colorScheme.tertiary],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+    return Column(
+      children: [
+        TarjetaCuenta(cuenta: cuenta, titular: titular),
+        const SizedBox(height: 10),
+        Center(
+          child: FilledButton.tonalIcon(
+            onPressed: onPin,
+            icon: const Icon(Icons.pin_outlined),
+            label: const Text('Configurar PIN de compras'),
+          ),
         ),
-      ),
-      child: DefaultTextStyle(
-        style: TextStyle(color: t.colorScheme.onPrimary),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Text('Cuenta ${cuenta.enmascarada}',
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-                const Spacer(),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(cuenta.activa ? 'Activa' : cuenta.estatus,
-                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-                ),
-              ],
-            ),
-            const SizedBox(height: 18),
-            const Text('Saldo disponible', style: TextStyle(fontSize: 13)),
-            Text(dinero(cuenta.saldo),
-                style: const TextStyle(fontSize: 30, fontWeight: FontWeight.w800)),
-            const SizedBox(height: 12),
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton.icon(
-                onPressed: onPin,
-                style: TextButton.styleFrom(foregroundColor: t.colorScheme.onPrimary),
-                icon: const Icon(Icons.pin_outlined),
-                label: const Text('Configurar PIN'),
-              ),
-            ),
-          ],
-        ),
-      ),
+      ],
     );
   }
 }
