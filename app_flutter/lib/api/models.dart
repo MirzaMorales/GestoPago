@@ -145,6 +145,16 @@ class Colonia {
   int get hashCode => Object.hash(codigoPostal, colonia, municipio, estado);
 }
 
+/// Ocupación del catálogo (agrupada por división del SINCO 2019).
+class Ocupacion {
+  const Ocupacion(this.nombre, this.grupo);
+
+  final String nombre;
+  final String grupo;
+
+  factory Ocupacion.fromJson(Map<String, dynamic> j) => Ocupacion(_str(j['nombre']), _str(j['grupo']));
+}
+
 class Cuenta {
   Cuenta(this.numeroCuenta, this.saldo, this.estatus);
 

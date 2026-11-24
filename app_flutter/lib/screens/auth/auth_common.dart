@@ -5,14 +5,9 @@ import 'login_panel.dart';
 import 'recuperar_panel.dart';
 import 'register_panel.dart';
 
-enum ModoAuth { login, registro, recuperar }
+export '../../ui/validadores.dart' show validarCorreo;
 
-String? validarCorreo(String? v) {
-  final s = v?.trim() ?? '';
-  if (s.isEmpty) return 'Escribe tu correo';
-  if (!RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(s)) return 'Correo no válido';
-  return null;
-}
+enum ModoAuth { login, registro, recuperar }
 
 class TituloAuth extends StatelessWidget {
   const TituloAuth({super.key, required this.titulo, required this.subtitulo});

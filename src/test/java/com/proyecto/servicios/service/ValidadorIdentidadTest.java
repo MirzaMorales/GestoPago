@@ -28,6 +28,12 @@ class ValidadorIdentidadTest {
     }
 
     @Test
+    void curpConClaveDeEntidadInexistenteSeRechaza() {
+        assertEquals("La CURP tiene una clave de entidad no válida",
+                ValidadorIdentidad.errorCurp("LORA950520MXXPZN01", NACIMIENTO, "Femenino"));
+    }
+
+    @Test
     void rfcConOtraFechaSeRechaza() {
         assertEquals("El RFC no coincide con la fecha de nacimiento",
                 ValidadorIdentidad.errorRfc("LORA950521AB1", NACIMIENTO));

@@ -3,6 +3,7 @@ package com.proyecto.servicios.service;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
+import java.util.Set;
 
 /**
  * Coherencia entre los datos de identidad: la CURP y el RFC llevan la fecha de nacimiento (AAMMDD) y la CURP
@@ -11,6 +12,11 @@ import java.util.Locale;
 public final class ValidadorIdentidad {
 
     private static final DateTimeFormatter AAMMDD = DateTimeFormatter.ofPattern("yyMMdd");
+
+    /** Claves de entidad federativa que admite la CURP (posiciones 12 y 13); NE es nacido en el extranjero. */
+    private static final Set<String> ENTIDADES = Set.of("AS", "BC", "BS", "CC", "CL", "CM", "CS", "CH", "DF", "DG",
+            "GT", "GR", "HG", "JC", "MC", "MN", "MS", "NT", "NL", "OC", "PL", "QT", "QR", "SP", "SL", "SR", "TC",
+            "TS", "TL", "VZ", "YN", "ZS", "NE");
 
     private ValidadorIdentidad() {
     }
@@ -21,6 +27,9 @@ public final class ValidadorIdentidad {
             return null; // el formato ya lo valida el DTO
         }
         String c = curp.toUpperCase(Locale.ROOT);
+        if (!ENTIDADES.contains(c.substring(11, 13))) {
+            return "La CURP tiene una clave de entidad no válida";
+        }
         if (!c.substring(4, 10).equals(fechaNacimiento.format(AAMMDD))) {
             return "La CURP no coincide con la fecha de nacimiento";
         }

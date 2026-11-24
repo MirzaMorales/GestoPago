@@ -66,9 +66,11 @@ public class ActualizaClienteRequest {
 
     @NotBlank(message = "El teléfono móvil es obligatorio")
     @Pattern(regexp = "^\\d{10}$", message = "El teléfono móvil debe contener exactamente 10 dígitos")
+    @Pattern(regexp = "^[2-9]\\d{9}$", message = "El teléfono móvil no es válido: en México no empieza con 0 ni con 1")
     private String telefonoMovil;
 
     @Pattern(regexp = "^\\d{10}$", message = "El teléfono alternativo debe contener exactamente 10 dígitos")
+    @Pattern(regexp = "^$|^[2-9]\\d{9}$", message = "El teléfono alternativo no es válido: en México no empieza con 0 ni con 1")
     private String telefonoAlternativo;
 
     @NotBlank(message = "La ocupación es obligatoria")
@@ -83,6 +85,7 @@ public class ActualizaClienteRequest {
 
     @NotNull(message = "El ingreso mensual es obligatorio")
     @DecimalMin(value = "0.01", message = "El ingreso mensual debe ser mayor a cero")
+    @DecimalMax(value = "10000000.00", message = "El ingreso mensual no puede exceder $10,000,000.00")
     @Digits(integer = 13, fraction = 2, message = "El ingreso mensual admite hasta 13 enteros y 2 decimales")
     private BigDecimal ingresoMensual;
 
