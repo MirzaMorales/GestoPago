@@ -249,6 +249,8 @@ class Compra {
     required this.cuenta,
     required this.estatus,
     required this.idServicio,
+    required this.estadoCompra,
+    required this.motivo,
   });
 
   final int idTransaccion;
@@ -264,6 +266,12 @@ class Compra {
   final String cuenta;
   final String estatus;
 
+  /// Exitosa, rechazada o pendiente (lo que ve el cliente).
+  final EstadoCompra estadoCompra;
+
+  /// Explicación cuando la compra no fue exitosa.
+  final String motivo;
+
   factory Compra.fromJson(Map<String, dynamic> j) => Compra(
         idTransaccion: _int(j['idTransaccion']) ?? 0,
         fecha: _fecha(j['fecha']),
@@ -277,6 +285,8 @@ class Compra {
         numAutorizacion: _str(j['numAutorizacion']),
         cuenta: _str(j['cuenta']),
         estatus: _str(j['estatus']),
+        estadoCompra: j['estadoCompra'] == null ? EstadoCompra.exitosa : estadoCompraDe(_str(j['estadoCompra'])),
+        motivo: _str(j['motivo']),
       );
 }
 
