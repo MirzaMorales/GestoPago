@@ -1,3 +1,4 @@
+import 'iconos.dart';
 import 'package:flutter/material.dart';
 
 import '../api/api_client.dart';
@@ -82,7 +83,7 @@ class Mensaje extends StatelessWidget {
   final String? textoAccion;
 
   factory Mensaje.error(Object e, VoidCallback reintentar) => Mensaje(
-        icono: e is ApiException && e.sinConexion ? Icons.wifi_off_rounded : Icons.error_outline,
+        icono: e is ApiException && e.sinConexion ? Iconos.wifi_off_rounded : Iconos.error_outline,
         titulo: 'No pudimos cargar la información',
         texto: e is ApiException ? e.mensaje : 'Ocurrió un error inesperado.',
         accion: reintentar,
@@ -111,7 +112,7 @@ class Mensaje extends StatelessWidget {
               const SizedBox(height: 20),
               OutlinedButton.icon(
                   onPressed: accion,
-                  icon: const Icon(Icons.refresh),
+                  icon: const Icon(Iconos.refresh),
                   label: Text(textoAccion ?? 'Reintentar')),
             ],
           ],

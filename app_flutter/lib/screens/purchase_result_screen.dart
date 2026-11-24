@@ -1,3 +1,4 @@
+import '../ui/iconos.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -148,13 +149,13 @@ class _PurchaseResultScreenState extends State<PurchaseResultScreen> {
 
   ({Color color, IconData icono, String titulo}) get _estilo => switch (_estado) {
         EstadoCompra.exitosa =>
-          (color: Estados.exito, icono: Icons.check_circle_rounded, titulo: 'Compra exitosa'),
+          (color: Estados.exito, icono: Iconos.check_circle_rounded, titulo: 'Compra exitosa'),
         EstadoCompra.rechazada =>
-          (color: Estados.rechazo, icono: Icons.cancel_rounded, titulo: 'Compra rechazada'),
+          (color: Estados.rechazo, icono: Iconos.cancel_rounded, titulo: 'Compra rechazada'),
         EstadoCompra.pendiente =>
-          (color: Estados.pendiente, icono: Icons.schedule_rounded, titulo: 'Compra pendiente'),
+          (color: Estados.pendiente, icono: Iconos.schedule_rounded, titulo: 'Compra pendiente'),
         EstadoCompra.errorComunicacion =>
-          (color: Estados.error, icono: Icons.cloud_off_rounded, titulo: 'Error de comunicación'),
+          (color: Estados.error, icono: Iconos.cloud_off_rounded, titulo: 'Error de comunicación'),
       };
 
   String get _explicacion => switch (_estado) {
@@ -220,7 +221,7 @@ class _PurchaseResultScreenState extends State<PurchaseResultScreen> {
                 alignment: Alignment.centerRight,
                 child: TextButton.icon(
                   onPressed: _copiarDetalle,
-                  icon: const Icon(Icons.copy_all_outlined, size: 18),
+                  icon: const Icon(Iconos.copy_all_outlined, size: 18),
                   label: const Text('Copiar detalle para soporte'),
                 ),
               ),
@@ -243,7 +244,7 @@ class _PurchaseResultScreenState extends State<PurchaseResultScreen> {
         appBar: AppBar(
           leading: IconButton(
             tooltip: _exitosa ? 'Volver al catálogo' : 'Volver al producto',
-            icon: const Icon(Icons.arrow_back),
+            icon: const Icon(Iconos.arrow_back),
             onPressed: () => _salir(_accionVolver),
           ),
           title: const Text('Resultado de la compra'),
@@ -437,18 +438,18 @@ class _Acciones extends StatelessWidget {
 
     final verCompras = OutlinedButton.icon(
       onPressed: () => onSalir(AccionResultado.verCompras),
-      icon: const Icon(Icons.receipt_long_outlined),
+      icon: const Icon(Iconos.receipt_long_outlined),
       label: Text(compacta ? 'Mis compras' : 'Ver mis compras'),
     );
     final catalogo = compacta
         ? OutlinedButton.icon(
             onPressed: () => onSalir(AccionResultado.catalogo),
-            icon: const Icon(Icons.storefront_outlined),
+            icon: const Icon(Iconos.storefront_outlined),
             label: const Text('Catálogo'),
           )
         : TextButton.icon(
             onPressed: () => onSalir(AccionResultado.catalogo),
-            icon: const Icon(Icons.storefront_outlined),
+            icon: const Icon(Iconos.storefront_outlined),
             label: const Text('Ir al catálogo'),
           );
 
@@ -458,13 +459,13 @@ class _Acciones extends StatelessWidget {
       case EstadoCompra.exitosa:
         principal = FilledButton.icon(
           onPressed: () => onSalir(AccionResultado.verCompras),
-          icon: const Icon(Icons.receipt_long),
+          icon: const Icon(Iconos.receipt_long),
           label: const Text('Ver mis compras'),
         );
         secundarios = [
           OutlinedButton.icon(
             onPressed: () => onSalir(AccionResultado.catalogo),
-            icon: const Icon(Icons.add_shopping_cart),
+            icon: const Icon(Iconos.add_shopping_cart),
             label: const Text('Seguir comprando'),
           ),
         ];
@@ -474,16 +475,30 @@ class _Acciones extends StatelessWidget {
                 onPressed: consultando ? null : onConsultar,
                 icon: consultando
                     ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                    : const Icon(Icons.refresh),
+                    : const Icon(Iconos.refresh),
                 label: const Text('Consultar estado'),
               )
             : null;
         secundarios = [verCompras, catalogo];
-      case EstadoCompra.rechazada:
       case EstadoCompra.errorComunicacion:
+        // Sin respuesta no sabemos si se cobró: primero revisar el historial para no pagar dos veces.
+        principal = FilledButton.icon(
+          onPressed: () => onSalir(AccionResultado.verCompras),
+          icon: const Icon(Iconos.receipt_long_outlined),
+          label: const Text('Revisar mis compras'),
+        );
+        secundarios = [
+          OutlinedButton.icon(
+            onPressed: () => onSalir(AccionResultado.reintentar),
+            icon: const Icon(Iconos.replay),
+            label: const Text('Intentar de nuevo'),
+          ),
+          catalogo,
+        ];
+      case EstadoCompra.rechazada:
         principal = FilledButton.icon(
           onPressed: () => onSalir(AccionResultado.reintentar),
-          icon: const Icon(Icons.replay),
+          icon: const Icon(Iconos.replay),
           label: const Text('Intentar de nuevo'),
         );
         secundarios = [verCompras, catalogo];
@@ -543,7 +558,7 @@ class _DetalleError extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(Icons.info_outline, color: color),
+                Icon(Iconos.info_outline, color: color),
                 const SizedBox(width: 8),
                 Text('Detalle', style: t.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
               ],
@@ -563,7 +578,7 @@ class _DetalleError extends StatelessWidget {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(Icons.lightbulb_outline, color: color, size: 20),
+                  Icon(Iconos.lightbulb_outline, color: color, size: 20),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Column(

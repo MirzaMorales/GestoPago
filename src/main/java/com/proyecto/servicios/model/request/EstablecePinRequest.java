@@ -24,4 +24,8 @@ public class EstablecePinRequest {
     /** Obligatorio solo cuando la cuenta ya tiene un PIN configurado. */
     @Pattern(regexp = "^\\d{4}$", message = "El PIN actual debe contener exactamente 4 dígitos")
     private String pinActual;
+
+    /** Autorización de un solo uso que se obtiene al verificar el código del correo; obligatoria para cambiar un PIN. */
+    @jakarta.validation.constraints.Size(max = 64, message = "La autorización es inválida")
+    private String autorizacionId;
 }

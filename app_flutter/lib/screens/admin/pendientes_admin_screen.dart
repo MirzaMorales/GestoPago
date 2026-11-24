@@ -1,3 +1,4 @@
+import '../../ui/iconos.dart';
 import 'package:flutter/material.dart';
 
 import '../../api/api_client.dart';
@@ -55,7 +56,7 @@ class PendientesAdminScreenState extends State<PendientesAdminScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Compras pendientes'),
-        actions: [IconButton(tooltip: 'Actualizar', onPressed: recargar, icon: const Icon(Icons.refresh)), const SizedBox(width: 8)],
+        actions: [IconButton(tooltip: 'Actualizar', onPressed: recargar, icon: const Icon(Iconos.refresh)), const SizedBox(width: 8)],
       ),
       body: Centrado(
         maxWidth: 900,
@@ -73,7 +74,7 @@ class PendientesAdminScreenState extends State<PendientesAdminScreen> {
                     padding: const EdgeInsets.all(16),
                     child: Row(
                       children: [
-                        const Icon(Icons.sync_alt),
+                        const Icon(Iconos.sync_alt),
                         const SizedBox(width: 12),
                         const Expanded(
                           child: Text('Cuando GestoPago no responde a tiempo, la compra queda pendiente. '
@@ -84,7 +85,7 @@ class PendientesAdminScreenState extends State<PendientesAdminScreen> {
                           onPressed: _conciliando ? null : _conciliar,
                           icon: _conciliando
                               ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                              : const Icon(Icons.cloud_sync_outlined),
+                              : const Icon(Iconos.cloud_sync_outlined),
                           label: const Text('Consultar ahora'),
                         ),
                       ],
@@ -94,7 +95,7 @@ class PendientesAdminScreenState extends State<PendientesAdminScreen> {
                 const SizedBox(height: 12),
                 if (lista.isEmpty)
                   const Mensaje(
-                    icono: Icons.task_alt,
+                    icono: Iconos.task_alt,
                     titulo: 'No hay compras pendientes',
                     texto: 'Todas las compras tienen un resultado confirmado.',
                   )
@@ -136,7 +137,7 @@ class _TarjetaPendiente extends StatelessWidget {
           children: [
             Row(
               children: [
-                const Icon(Icons.schedule, color: Estados.pendiente),
+                const Icon(Iconos.schedule, color: Estados.pendiente),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text('Folio ${p.id} · ${dinero(p.monto)}',
@@ -163,12 +164,12 @@ class _TarjetaPendiente extends StatelessWidget {
                 children: [
                   OutlinedButton.icon(
                     onPressed: onRevertir,
-                    icon: const Icon(Icons.undo),
+                    icon: const Icon(Iconos.undo),
                     label: const Text('Revertir y devolver saldo'),
                   ),
                   FilledButton.icon(
                     onPressed: onConfirmar,
-                    icon: const Icon(Icons.check),
+                    icon: const Icon(Iconos.check),
                     label: const Text('Confirmar como exitosa'),
                   ),
                 ],

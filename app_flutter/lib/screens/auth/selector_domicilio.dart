@@ -1,3 +1,4 @@
+import '../../ui/iconos.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -167,13 +168,13 @@ class _SelectorDomicilioState extends State<SelectorDomicilio> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const _SoloLectura(etiqueta: 'País', valor: 'México', icono: Icons.public),
+        const _SoloLectura(etiqueta: 'País', valor: 'México', icono: Iconos.public),
         const SizedBox(height: 14),
         SegmentedButton<_Modo>(
           segments: const [
             ButtonSegment(
-                value: _Modo.codigoPostal, icon: Icon(Icons.pin_drop_outlined), label: Text('Código postal')),
-            ButtonSegment(value: _Modo.listas, icon: Icon(Icons.list_alt), label: Text('No lo sé')),
+                value: _Modo.codigoPostal, icon: Icon(Iconos.pin_drop_outlined), label: Text('Código postal')),
+            ButtonSegment(value: _Modo.listas, icon: Icon(Iconos.list_alt), label: Text('No lo sé')),
           ],
           selected: {_modo},
           showSelectedIcon: false,
@@ -199,7 +200,7 @@ class _SelectorDomicilioState extends State<SelectorDomicilio> {
           decoration: InputDecoration(
             labelText: 'Código postal',
             counterText: '',
-            prefixIcon: const Icon(Icons.markunread_mailbox_outlined),
+            prefixIcon: const Icon(Iconos.markunread_mailbox_outlined),
             helperText: _errorCp == null ? 'Escribe los 5 dígitos y elige tu colonia' : null,
             errorText: _errorCp,
             suffixIcon: _buscandoCp
@@ -223,17 +224,17 @@ class _SelectorDomicilioState extends State<SelectorDomicilio> {
         // Mismo orden que en "No lo sé": Estado → Municipio → Colonia (la colonia queda debajo del estado).
         if (_coloniasCp.isNotEmpty) ...[
           const SizedBox(height: 14),
-          _SoloLectura(etiqueta: 'Estado', valor: _coloniasCp.first.estado, icono: Icons.map_outlined),
+          _SoloLectura(etiqueta: 'Estado', valor: _coloniasCp.first.estado, icono: Iconos.map_outlined),
           const SizedBox(height: 14),
           _SoloLectura(
               etiqueta: 'Municipio o alcaldía',
               valor: _coloniasCp.first.municipio,
-              icono: Icons.location_city_outlined),
+              icono: Iconos.location_city_outlined),
           const SizedBox(height: 14),
           _Lista<Colonia>(
             key: ValueKey('colonias-cp-${_cp.text}'),
             etiqueta: 'Colonia',
-            icono: Icons.holiday_village_outlined,
+            icono: Iconos.holiday_village_outlined,
             opciones: _coloniasCp,
             texto: (c) => c.etiqueta,
             valor: _seleccion,
@@ -252,7 +253,7 @@ class _SelectorDomicilioState extends State<SelectorDomicilio> {
         _Lista<String>(
           key: const ValueKey('estados'),
           etiqueta: 'Estado',
-          icono: Icons.map_outlined,
+          icono: Iconos.map_outlined,
           opciones: _estados,
           texto: (s) => s,
           valor: _estado,
@@ -262,7 +263,7 @@ class _SelectorDomicilioState extends State<SelectorDomicilio> {
         _Lista<String>(
           key: ValueKey('municipios-$_estado'),
           etiqueta: 'Municipio o alcaldía',
-          icono: Icons.location_city_outlined,
+          icono: Iconos.location_city_outlined,
           opciones: _municipios,
           texto: (s) => s,
           valor: _municipio,
@@ -273,7 +274,7 @@ class _SelectorDomicilioState extends State<SelectorDomicilio> {
         _Lista<Colonia>(
           key: ValueKey('colonias-$_estado-$_municipio'),
           etiqueta: 'Colonia',
-          icono: Icons.holiday_village_outlined,
+          icono: Iconos.holiday_village_outlined,
           opciones: _coloniasMunicipio,
           texto: (c) => '${c.etiqueta} · CP ${c.codigoPostal}',
           valor: _seleccion,
@@ -284,7 +285,7 @@ class _SelectorDomicilioState extends State<SelectorDomicilio> {
         _SoloLectura(
           etiqueta: 'Código postal',
           valor: _seleccion?.codigoPostal ?? 'Se llena al elegir la colonia',
-          icono: Icons.markunread_mailbox_outlined,
+          icono: Iconos.markunread_mailbox_outlined,
           vacio: _seleccion == null,
         ),
       ];
@@ -348,7 +349,7 @@ class _SoloLectura extends StatelessWidget {
         prefixIcon: Icon(icono),
         suffixIcon: Tooltip(
           message: 'Se completa con el catálogo de Correos de México',
-          child: Icon(Icons.lock_outline, size: 18, color: t.colorScheme.outline),
+          child: Icon(Iconos.lock_outline, size: 18, color: t.colorScheme.outline),
         ),
         enabled: false,
       ),

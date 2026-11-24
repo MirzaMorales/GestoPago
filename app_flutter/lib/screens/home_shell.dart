@@ -1,3 +1,5 @@
+import '../ui/iconos.dart';
+import '../ui/logo_pagaki.dart';
 import 'package:flutter/material.dart';
 
 import '../state/session.dart';
@@ -26,34 +28,34 @@ class _HomeShellState extends State<HomeShell> {
   late final List<({IconData icono, IconData activo, String texto, Widget vista})> _secciones = [
     if (!_cliente) ...[
       (
-        icono: Icons.people_outline,
-        activo: Icons.people,
+        icono: Iconos.people_outline,
+        activo: Iconos.people,
         texto: 'Clientes',
         vista: ClientesAdminScreen(session: widget.session),
       ),
       (
-        icono: Icons.pending_actions_outlined,
-        activo: Icons.pending_actions,
+        icono: Iconos.pending_actions_outlined,
+        activo: Iconos.pending_actions,
         texto: 'Pendientes',
         vista: PendientesAdminScreen(session: widget.session),
       ),
     ],
     (
-      icono: Icons.storefront_outlined,
-      activo: Icons.storefront,
+      icono: Iconos.storefront_outlined,
+      activo: Iconos.storefront,
       texto: 'Catálogo',
       vista: CatalogScreen(session: widget.session, onCompraExitosa: _irAHistorial),
     ),
     if (_cliente)
       (
-        icono: Icons.receipt_long_outlined,
-        activo: Icons.receipt_long,
+        icono: Iconos.receipt_long_outlined,
+        activo: Iconos.receipt_long,
         texto: 'Mis compras',
         vista: HistoryScreen(key: _historialKey, session: widget.session),
       ),
     (
-      icono: Icons.person_outline,
-      activo: Icons.person,
+      icono: Iconos.person_outline,
+      activo: Iconos.person,
       texto: 'Mi cuenta',
       vista: AccountScreen(session: widget.session),
     ),
@@ -102,16 +104,10 @@ class _HomeShellState extends State<HomeShell> {
               padding: const EdgeInsets.symmetric(vertical: 20),
               child: Column(
                 children: [
-                  Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                        color: t.colorScheme.primary, borderRadius: BorderRadius.circular(14)),
-                    child: Icon(Icons.payments_rounded, color: t.colorScheme.onPrimary),
-                  ),
+                  const LogoPagaki(tamano: 48),
                   const SizedBox(height: 6),
-                  Text('GestoPago',
-                      style: t.textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w700)),
+                  Text(nombreApp, style: t.textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w800)),
+                  Text(lemaApp, style: t.textTheme.labelSmall?.copyWith(color: t.colorScheme.onSurfaceVariant)),
                 ],
               ),
             ),

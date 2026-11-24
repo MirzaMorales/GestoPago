@@ -88,7 +88,7 @@ void main() {
           home: Scaffold(body: Padding(padding: const EdgeInsets.all(16), child: TarjetaCuenta(cuenta: cuenta, titular: 'Ana López Ruiz'))),
         ));
         expect(tester.takeException(), isNull);
-        expect(find.text('GestoPago'), findsOneWidget);
+        expect(find.text('Pagaki'), findsOneWidget);
         expect(find.text('ANA LÓPEZ RUIZ'), findsOneWidget);
         expect(find.text('SALDO DISPONIBLE'), findsOneWidget);
       });

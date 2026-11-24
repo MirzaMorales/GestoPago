@@ -1,11 +1,11 @@
 {
-    "name": "GestoPago",
-    "short_name": "GestoPago",
+    "name": "Pagaki",
+    "short_name": "Pagaki",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0F766E",
     "theme_color": "#0F766E",
-    "description": "Recargas, tarjetas y pago de servicios con GestoPago.",
+    "description": "Recargas, tarjetas y pago de servicios con Pagaki, con GestoPago.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

@@ -1,4 +1,6 @@
+import '../ui/iconos.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../api/api_client.dart';
 import '../api/models.dart';
@@ -8,10 +10,10 @@ import '../ui/widgets.dart';
 
 /// Filtro de estado del historial; [valor] es lo que espera el backend (null = todas).
 enum FiltroEstado {
-  todas('Todas', null, Icons.list_alt),
-  exitosas('Exitosas', 'EXITOSA', Icons.check_circle_outline),
-  rechazadas('Rechazadas', 'RECHAZADA', Icons.cancel_outlined),
-  pendientes('Pendientes', 'PENDIENTE', Icons.schedule);
+  todas('Todas', null, Iconos.list_alt),
+  exitosas('Exitosas', 'EXITOSA', Iconos.check_circle_outline),
+  rechazadas('Rechazadas', 'RECHAZADA', Iconos.cancel_outlined),
+  pendientes('Pendientes', 'PENDIENTE', Iconos.schedule);
 
   const FiltroEstado(this.texto, this.valor, this.icono);
 
@@ -21,10 +23,10 @@ enum FiltroEstado {
 }
 
 ({Color color, IconData icono, String texto}) estiloEstado(EstadoCompra e) => switch (e) {
-      EstadoCompra.exitosa => (color: Estados.exito, icono: Icons.check_rounded, texto: 'Exitosa'),
-      EstadoCompra.rechazada => (color: Estados.rechazo, icono: Icons.close_rounded, texto: 'Rechazada'),
-      EstadoCompra.pendiente => (color: Estados.pendiente, icono: Icons.schedule_rounded, texto: 'Pendiente'),
-      EstadoCompra.errorComunicacion => (color: Estados.error, icono: Icons.cloud_off_rounded, texto: 'Sin confirmar'),
+      EstadoCompra.exitosa => (color: Estados.exito, icono: Iconos.check_rounded, texto: 'Exitosa'),
+      EstadoCompra.rechazada => (color: Estados.rechazo, icono: Iconos.close_rounded, texto: 'Rechazada'),
+      EstadoCompra.pendiente => (color: Estados.pendiente, icono: Iconos.schedule_rounded, texto: 'Pendiente'),
+      EstadoCompra.errorComunicacion => (color: Estados.error, icono: Iconos.cloud_off_rounded, texto: 'Sin confirmar'),
     };
 
 /// Historial de compras del usuario (POST /pagos/historial) con filtros de estado y fechas, paginado.
@@ -132,70 +134,169 @@ class HistoryScreenState extends State<HistoryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = Theme.of(context);
+    final ancho = MediaQuery.sizeOf(context).width >= 900;
     return Scaffold(
       appBar: AppBar(
         title: const Text('Mis compras'),
         actions: [
-          IconButton(tooltip: 'Actualizar', onPressed: recargar, icon: const Icon(Icons.refresh)),
+          IconButton(tooltip: 'Actualizar', onPressed: recargar, icon: const Icon(Iconos.refresh)),
           const SizedBox(width: 8),
         ],
       ),
-      body: Centrado(
-        maxWidth: 760,
-        child: Column(
-          children: [
-            _filtros(Theme.of(context)),
-            Expanded(child: _lista(Theme.of(context))),
-          ],
-        ),
-      ),
+      body: ancho
+          ? Centrado(
+              maxWidth: 1180,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(
+                    width: 280,
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(24, 8, 8, 24),
+                      child: _panelFiltros(t),
+                    ),
+                  ),
+                  VerticalDivider(width: 1, color: t.colorScheme.outlineVariant),
+                  Expanded(child: _lista(t)),
+                ],
+              ),
+            )
+          : Centrado(
+              maxWidth: 760,
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                    child: _filtrosCompactos(t),
+                  ),
+                  Expanded(child: _lista(t)),
+                ],
+              ),
+            ),
     );
   }
 
-  Widget _filtros(ThemeData t) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+  bool get _hayFiltros => _filtro != FiltroEstado.todas || _rango != null;
+
+  void _limpiarFiltros() {
+    _filtro = FiltroEstado.todas;
+    _rango = null;
+    recargar();
+  }
+
+  void _rapido(int dias) {
+    final hoy = DateTime.now();
+    final fin = DateTime(hoy.year, hoy.month, hoy.day);
+    _rango = DateTimeRange(start: fin.subtract(Duration(days: dias - 1)), end: fin);
+    recargar();
+  }
+
+  void _esteMes() {
+    final hoy = DateTime.now();
+    _rango = DateTimeRange(start: DateTime(hoy.year, hoy.month), end: DateTime(hoy.year, hoy.month, hoy.day));
+    recargar();
+  }
+
+  /// Atajos de fecha: el caso habitual es "lo de esta semana o este mes", no escoger dos días en un calendario.
+  Widget _atajosFecha() => Wrap(
+        spacing: 8,
+        runSpacing: 8,
         children: [
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                for (final f in FiltroEstado.values)
-                  Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: ChoiceChip(
-                      avatar: Icon(f.icono, size: 18),
-                      label: Text(f.texto),
-                      selected: _filtro == f,
-                      onSelected: (_) => _cambiarFiltro(f),
-                    ),
-                  ),
-              ],
+          ActionChip(label: const Text('Hoy'), onPressed: () => _rapido(1)),
+          ActionChip(label: const Text('7 días'), onPressed: () => _rapido(7)),
+          ActionChip(label: const Text('30 días'), onPressed: () => _rapido(30)),
+          ActionChip(label: const Text('Este mes'), onPressed: _esteMes),
+        ],
+      );
+
+  /// Escritorio: panel lateral con estado, fechas y limpiar.
+  Widget _panelFiltros(ThemeData t) {
+    final titulo = t.textTheme.labelLarge?.copyWith(
+        fontWeight: FontWeight.w700, color: t.colorScheme.onSurfaceVariant, letterSpacing: 0.4);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text('ESTADO', style: titulo),
+        const SizedBox(height: 8),
+        for (final f in FiltroEstado.values)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 4),
+            child: ListTile(
+              dense: true,
+              selected: _filtro == f,
+              selectedTileColor: t.colorScheme.primaryContainer.withValues(alpha: 0.6),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              leading: Icon(f.icono, size: 20),
+              title: Text(f.texto),
+              onTap: () => _cambiarFiltro(f),
             ),
           ),
-          const SizedBox(height: 8),
-          Wrap(
-            crossAxisAlignment: WrapCrossAlignment.center,
-            spacing: 8,
+        const SizedBox(height: 20),
+        Text('FECHA', style: titulo),
+        const SizedBox(height: 8),
+        _atajosFecha(),
+        const SizedBox(height: 8),
+        OutlinedButton.icon(
+          onPressed: _elegirFechas,
+          icon: const Icon(Iconos.date_range, size: 18),
+          label: Text(_textoRango, overflow: TextOverflow.ellipsis),
+        ),
+        if (_hayFiltros) ...[
+          const SizedBox(height: 16),
+          TextButton.icon(
+            onPressed: _limpiarFiltros,
+            icon: const Icon(Iconos.filter_alt_off_outlined, size: 18),
+            label: const Text('Quitar filtros'),
+          ),
+        ],
+      ],
+    );
+  }
+
+  /// Móvil: chips de estado y una fila de fechas con atajos.
+  Widget _filtrosCompactos(ThemeData t) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
             children: [
-              ActionChip(
-                avatar: const Icon(Icons.date_range, size: 18),
-                label: Text(_textoRango),
-                onPressed: _elegirFechas,
-              ),
-              if (_rango != null)
-                IconButton(
-                  tooltip: 'Quitar filtro de fechas',
-                  visualDensity: VisualDensity.compact,
-                  icon: const Icon(Icons.close, size: 18),
-                  onPressed: _quitarFechas,
+              for (final f in FiltroEstado.values)
+                Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: ChoiceChip(
+                    avatar: Icon(f.icono, size: 18),
+                    label: Text(f.texto),
+                    selected: _filtro == f,
+                    onSelected: (_) => _cambiarFiltro(f),
+                  ),
                 ),
             ],
           ),
-        ],
-      ),
+        ),
+        const SizedBox(height: 8),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
+              InputChip(
+                avatar: const Icon(Iconos.date_range, size: 18),
+                label: Text(_textoRango),
+                onPressed: _elegirFechas,
+                onDeleted: _rango == null ? null : _quitarFechas,
+              ),
+              const SizedBox(width: 8),
+              ActionChip(label: const Text('7 días'), onPressed: () => _rapido(7)),
+              const SizedBox(width: 8),
+              ActionChip(label: const Text('30 días'), onPressed: () => _rapido(30)),
+              const SizedBox(width: 8),
+              ActionChip(label: const Text('Este mes'), onPressed: _esteMes),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -209,7 +310,7 @@ class HistoryScreenState extends State<HistoryScreen> {
     if (_compras.isEmpty) {
       final hayFiltros = _filtro != FiltroEstado.todas || _rango != null;
       return Mensaje(
-        icono: Icons.receipt_long_outlined,
+        icono: Iconos.receipt_long_outlined,
         titulo: hayFiltros ? 'No hay compras con estos filtros' : 'Aún no tienes compras',
         texto: hayFiltros ? 'Prueba con otro estado o rango de fechas.' : 'Aquí verás todas tus compras.',
         accion: hayFiltros
@@ -363,9 +464,33 @@ class _DetalleCompra extends StatefulWidget {
 class _DetalleCompraState extends State<_DetalleCompra> {
   late Future<Compra> _carga = widget.session.api.detalleCompra(widget.idTransaccion);
 
+  /// Últimos 4 dígitos de la cuenta, con el mismo formato de la tarjeta de Mi cuenta.
+  static String _cuentaCorta(String cuenta) {
+    final d = cuenta.replaceAll(RegExp(r'[^0-9]'), '');
+    return d.length >= 4 ? '•••• ${d.substring(d.length - 4)}' : cuenta;
+  }
+
+  String _textoComprobante(Compra c) {
+    final e = estiloEstado(c.estadoCompra);
+    return [
+      'Comprobante GestoPago',
+      c.producto,
+      'Estado: ${e.texto}',
+      'Importe: ${dinero(c.monto)}',
+      'Fecha: ${fechaHora(c.fecha)}',
+      'Referencia: ${c.referencia}',
+      'Folio: ${c.idTransaccion}',
+      if (c.numAutorizacion.isNotEmpty) 'Autorización: ${c.numAutorizacion}',
+    ].join('\n');
+  }
+
+  Future<void> _copiar(String texto, String aviso) async {
+    await Clipboard.setData(ClipboardData(text: texto));
+    if (mounted) mostrarSnack(context, aviso);
+  }
+
   @override
   Widget build(BuildContext context) {
-    final t = Theme.of(context);
     return Scaffold(
       appBar: AppBar(title: const Text('Detalle de la compra')),
       body: FutureBuilder<Compra>(
@@ -380,89 +505,203 @@ class _DetalleCompraState extends State<_DetalleCompra> {
                 }));
           }
           final c = snap.data!;
-          final e = estiloEstado(c.estadoCompra);
-          final exitosa = c.estadoCompra == EstadoCompra.exitosa;
+          final ancho = MediaQuery.sizeOf(context).width >= 900;
+          final principal = _tarjetaPrincipal(c);
+          final lateral = _tarjetaLateral(c);
           return SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
+            padding: EdgeInsets.fromLTRB(ancho ? 32 : 16, 8, ancho ? 32 : 16, 32),
             child: Centrado(
-              maxWidth: 560,
-              child: Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Row(
-                        children: [
-                          LogoServicio(
-                            url: c.idServicio != null
-                                ? 'https://gestopago.portalventas.net/sistema/images/gestopago/servicios/${c.idServicio}.png'
-                                : null,
-                            nombre: c.producto,
-                            size: 56,
-                          ),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(c.producto,
-                                    style: t.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
-                                const SizedBox(height: 6),
-                                Chip(
-                                  avatar: Icon(e.icono, color: e.color, size: 18),
-                                  label: Text(e.texto),
-                                  visualDensity: VisualDensity.compact,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                      if (!exitosa && c.motivo.isNotEmpty) ...[
-                        const SizedBox(height: 12),
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: e.color.withValues(alpha: 0.08),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Icon(Icons.info_outline, color: e.color, size: 20),
-                              const SizedBox(width: 10),
-                              Expanded(child: Text(c.motivo, style: t.textTheme.bodyMedium)),
-                            ],
-                          ),
-                        ),
+              maxWidth: ancho ? 1000 : 560,
+              child: ancho
+                  ? Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(flex: 6, child: principal),
+                        const SizedBox(width: 24),
+                        Expanded(flex: 4, child: lateral),
                       ],
-                      const Divider(height: 32),
-                      FilaDato('Importe', dinero(c.monto), destacado: true),
-                      if (exitosa && (c.comision ?? 0) > 0) FilaDato('Comisión', dinero(c.comision)),
-                      FilaDato('Cargo a tu cuenta', switch (c.estadoCompra) {
-                        EstadoCompra.exitosa => dinero(c.monto),
-                        EstadoCompra.rechazada => 'Ninguno',
-                        EstadoCompra.pendiente => 'Retenido hasta confirmar',
-                        EstadoCompra.errorComunicacion => 'Por confirmar',
-                      }),
-                      FilaDato('Fecha y hora', fechaHora(c.fecha)),
-                      FilaDato('Teléfono / referencia', c.referencia),
-                      FilaDato('Cuenta', c.cuenta),
-                      const Divider(height: 24),
-                      FilaDato('Folio', '${c.idTransaccion}'),
-                      if (exitosa) ...[
-                        FilaDato('Autorización', c.numAutorizacion),
-                        FilaDato('ID GestoPago', c.idTxGestoPago),
-                      ],
-                    ],
-                  ),
-                ),
-              ),
+                    )
+                  : Column(children: [principal, const SizedBox(height: 16), lateral]),
             ),
           );
         },
       ),
+    );
+  }
+
+  /// Encabezado con el importe y todos los datos del comprobante.
+  Widget _tarjetaPrincipal(Compra c) {
+    final t = Theme.of(context);
+    final e = estiloEstado(c.estadoCompra);
+    final exitosa = c.estadoCompra == EstadoCompra.exitosa;
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            color: e.color.withValues(alpha: 0.10),
+            padding: const EdgeInsets.all(24),
+            child: Row(
+              children: [
+                LogoServicio(
+                  url: c.idServicio != null
+                      ? 'https://gestopago.portalventas.net/sistema/images/gestopago/servicios/${c.idServicio}.png'
+                      : null,
+                  nombre: c.producto,
+                  size: 60,
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(c.producto, style: t.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+                      const SizedBox(height: 6),
+                      Row(children: [
+                        Icon(e.icono, color: e.color, size: 18),
+                        const SizedBox(width: 6),
+                        Text(e.texto,
+                            style: t.textTheme.labelLarge?.copyWith(color: e.color, fontWeight: FontWeight.w700)),
+                      ]),
+                    ],
+                  ),
+                ),
+                Text(dinero(c.monto),
+                    style: t.textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      decoration: c.estadoCompra == EstadoCompra.rechazada ? TextDecoration.lineThrough : null,
+                    )),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 12, 24, 20),
+            child: Column(
+              children: [
+                if (!exitosa && c.motivo.isNotEmpty)
+                  Container(
+                    margin: const EdgeInsets.only(top: 8, bottom: 8),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: e.color.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(Iconos.info_outline, color: e.color, size: 20),
+                        const SizedBox(width: 10),
+                        Expanded(child: Text(c.motivo, style: t.textTheme.bodyMedium)),
+                      ],
+                    ),
+                  ),
+                if (exitosa && (c.comision ?? 0) > 0) FilaDato('Comisión', dinero(c.comision)),
+                FilaDato('Cargo a tu cuenta', switch (c.estadoCompra) {
+                  EstadoCompra.exitosa => dinero(c.monto),
+                  EstadoCompra.rechazada => 'Ninguno',
+                  EstadoCompra.pendiente => 'Retenido hasta confirmar',
+                  EstadoCompra.errorComunicacion => 'Por confirmar',
+                }),
+                FilaDato('Fecha y hora', fechaHora(c.fecha)),
+                FilaDato('Teléfono / referencia', c.referencia),
+                FilaDato('Cuenta', _cuentaCorta(c.cuenta)),
+                const Divider(height: 24),
+                FilaDato('Folio', '${c.idTransaccion}'),
+                if (exitosa) ...[
+                  FilaDato('Autorización', c.numAutorizacion),
+                  FilaDato('ID GestoPago', c.idTxGestoPago),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Seguimiento de la compra, qué sigue y acciones sobre el comprobante.
+  Widget _tarjetaLateral(Compra c) {
+    final t = Theme.of(context);
+    final e = estiloEstado(c.estadoCompra);
+    final pasos = <(String, String, bool)>[
+      ('Compra registrada', fechaHora(c.fecha), true),
+      ('Enviada a GestoPago', 'Validación del saldo y del PIN', true),
+      switch (c.estadoCompra) {
+        EstadoCompra.exitosa => ('Compra confirmada', 'Aut. ${c.numAutorizacion}', true),
+        EstadoCompra.rechazada => ('Compra rechazada', 'No se hizo ningún cargo', true),
+        EstadoCompra.pendiente => ('Esperando confirmación', 'Puede tardar unos minutos', false),
+        EstadoCompra.errorComunicacion => ('Sin confirmar', 'Revisa de nuevo en unos minutos', false),
+      },
+    ];
+    final siguiente = switch (c.estadoCompra) {
+      EstadoCompra.exitosa =>
+        'Tu recarga o pago ya se aplicó. Guarda el folio y la autorización por si necesitas una aclaración.',
+      EstadoCompra.rechazada => 'No se descontó dinero. Revisa la referencia y vuelve a intentarlo desde el catálogo.',
+      EstadoCompra.pendiente => 'No pagues otra vez: se resolverá sola y verás el cambio aquí.',
+      EstadoCompra.errorComunicacion => 'No pagues otra vez hasta que esta compra cambie de estado.',
+    };
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Seguimiento', style: t.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
+                const SizedBox(height: 12),
+                for (var i = 0; i < pasos.length; i++)
+                  IntrinsicHeight(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Column(
+                          children: [
+                            Icon(pasos[i].$3 ? Iconos.check_circle : Iconos.schedule,
+                                size: 20, color: i == pasos.length - 1 ? e.color : t.colorScheme.primary),
+                            if (i < pasos.length - 1)
+                              Expanded(child: Container(width: 2, color: t.colorScheme.outlineVariant)),
+                          ],
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.only(bottom: 14),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(pasos[i].$1,
+                                    style: t.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
+                                Text(pasos[i].$2,
+                                    style: t.textTheme.bodySmall?.copyWith(color: t.colorScheme.onSurfaceVariant)),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                const Divider(height: 24),
+                Text(siguiente, style: t.textTheme.bodyMedium),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        FilledButton.tonalIcon(
+          onPressed: () => _copiar(_textoComprobante(c), 'Comprobante copiado.'),
+          icon: const Icon(Iconos.copy_all_outlined),
+          label: const Text('Copiar comprobante'),
+        ),
+        const SizedBox(height: 8),
+        OutlinedButton.icon(
+          onPressed: () => _copiar('${c.idTransaccion}', 'Folio copiado.'),
+          icon: const Icon(Iconos.tag),
+          label: const Text('Copiar folio'),
+        ),
+      ],
     );
   }
 }

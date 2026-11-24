@@ -166,12 +166,29 @@ class GestoPagoApi {
     return '${_datos(json)['resultado'] ?? ''}';
   }
 
-  Future<void> establecerPin(String numeroCuenta, String pinNuevo, {String? pinActual}) =>
+  Future<void> establecerPin(String numeroCuenta, String pinNuevo, {String? pinActual, String? autorizacionId}) =>
       client.post('/cuentas/pin', {
         'numeroCuenta': numeroCuenta,
         'pinNuevo': pinNuevo,
         if (pinActual != null && pinActual.isNotEmpty) 'pinActual': pinActual,
+        'autorizacionId': ?autorizacionId,
       });
+
+  /// "Olvidé mi PIN": el backend envía un PIN temporal al correo del titular.
+  Future<void> olvidePin(String numeroCuenta) => client.post('/cuentas/pin/olvide', {'numeroCuenta': numeroCuenta});
+
+  /// Cambio de PIN, paso 1: valida el PIN actual y envía un código al correo.
+  Future<Desafio2fa> iniciarCambioPin(String numeroCuenta, String pinActual) async {
+    final json = await client.post('/cuentas/pin/cambio/iniciar', {'numeroCuenta': numeroCuenta, 'pinActual': pinActual});
+    return Desafio2fa.fromJson(Map<String, dynamic>.from(json as Map));
+  }
+
+  /// Cambio de PIN, paso 2: valida el código y devuelve la autorización para fijar el PIN nuevo.
+  Future<String> verificarCambioPin(String numeroCuenta, String desafioId, String codigo) async {
+    final json = await client.post('/cuentas/pin/cambio/verificar',
+        {'numeroCuenta': numeroCuenta, 'desafioId': desafioId, 'codigo': codigo});
+    return '${_datos(json)['autorizacionId'] ?? ''}';
+  }
 
   // ---------- Compras ----------
 
@@ -201,6 +218,7 @@ class GestoPagoApi {
         'tipoFront': producto.tipoFront,
       },
       {'Idempotency-Key': idempotencyKey},
+      const Duration(seconds: 110), // despertar el servidor + proveedor
     );
     return ResultadoPago.fromJson(_datos(json));
   }

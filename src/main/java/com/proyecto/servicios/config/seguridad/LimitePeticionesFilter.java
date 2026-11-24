@@ -62,6 +62,7 @@ public class LimitePeticionesFilter extends OncePerRequestFilter {
                 new Regla("2fa", "POST", "/auth/verificar-2fa", dosFactores, minuto),
                 new Regla("registro", "POST", "/clientes", registro, Duration.ofHours(1)),
                 new Regla("recuperacion", "POST", "/auth/recuperar/", recuperacion, Duration.ofHours(1)),
+                new Regla("pin", "POST", "/cuentas/pin/", 20, Duration.ofHours(1)),
                 new Regla("catalogo", "GET", "/catalogos/", catalogo, minuto));
         this.general = new Regla("general", null, "/", generalPorMinuto, minuto);
     }

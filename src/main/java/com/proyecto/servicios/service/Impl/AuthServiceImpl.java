@@ -86,8 +86,8 @@ public class AuthServiceImpl implements AuthService {
     @Transactional(readOnly = true)
     public JwtAuthResponse verificar2fa(Verificacion2faRequest request) {
         Otp2faService.Verificado verificado = otp2faService.verificar(request.getDesafioId(), request.getCodigo());
-        // Un código de recuperación de contraseña nunca abre sesión.
-        if (Otp2faService.PROPOSITO_RECUPERACION.equals(verificado.plataforma())) {
+        // Un código de recuperación de contraseña o de cambio de PIN nunca abre sesión.
+        if (Otp2faService.esDeOtroProposito(verificado.plataforma())) {
             throw new Codigo2faInvalidoException("El código expiró o no es válido. Inicie sesión nuevamente");
         }
 

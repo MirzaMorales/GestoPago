@@ -20,6 +20,9 @@ class ApiException implements Exception {
 
   bool get sinConexion => status == 0;
 
+  /// true cuando la respuesta no llegó a tiempo: el servidor pudo haber procesado la petición.
+  bool tiempoAgotado = false;
+
   @override
   String toString() => mensaje;
 }
@@ -38,15 +41,22 @@ class ApiClient {
 
   Future<dynamic> get(String path) => _enviar('GET', path);
 
-  Future<dynamic> post(String path, [Object? body, Map<String, String>? headers]) =>
-      _enviar('POST', path, body: body, headers: headers);
+  Future<dynamic> post(String path, [Object? body, Map<String, String>? headers, Duration? espera]) =>
+      _enviar('POST', path, body: body, headers: headers, espera: espera);
+
+  /// Despierta el backend (Render gratuito se duerme tras 15 min) sin molestar al usuario si falla.
+  Future<void> calentar() async {
+    try {
+      await _http.get(Uri.parse('$apiUrl/actuator/health')).timeout(const Duration(seconds: 90));
+    } catch (_) {}
+  }
 
   Future<dynamic> put(String path, [Object? body]) => _enviar('PUT', path, body: body);
 
   Future<dynamic> delete(String path, [Object? body]) => _enviar('DELETE', path, body: body);
 
   Future<dynamic> _enviar(String metodo, String path,
-      {Object? body, Map<String, String>? headers}) async {
+      {Object? body, Map<String, String>? headers, Duration? espera}) async {
     final uri = Uri.parse('$apiUrl$path');
     final conToken = token != null;
     final req = http.Request(metodo, uri)
@@ -60,9 +70,10 @@ class ApiClient {
 
     http.Response res;
     try {
-      res = await http.Response.fromStream(await _http.send(req).timeout(_timeout));
+      res = await http.Response.fromStream(await _http.send(req).timeout(espera ?? _timeout));
     } on TimeoutException {
-      throw ApiException(0, 'El servidor tardó demasiado en responder. Intenta de nuevo.');
+      throw ApiException(0, 'El servidor tardó demasiado en responder. Intenta de nuevo.')
+        ..tiempoAgotado = true;
     } catch (_) {
       throw ApiException(0, 'No hay conexión con el servidor. Revisa tu internet.');
     }

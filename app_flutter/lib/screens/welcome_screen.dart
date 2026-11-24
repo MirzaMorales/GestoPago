@@ -1,3 +1,5 @@
+import '../ui/iconos.dart';
+import '../ui/logo_pagaki.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
@@ -75,10 +77,13 @@ class _BienvenidaMovil extends StatelessWidget {
                 const Spacer(flex: 3),
                 const _Logo(tamano: 88, claro: true),
                 const SizedBox(height: 28),
-                Text('GestoPago',
+                Text(nombreApp,
                     textAlign: TextAlign.center,
                     style: t.textTheme.displaySmall
                         ?.copyWith(color: Colors.white, fontWeight: FontWeight.w800, letterSpacing: -0.5)),
+                Text(lemaApp,
+                    textAlign: TextAlign.center,
+                    style: t.textTheme.titleSmall?.copyWith(color: Colors.white.withValues(alpha: 0.8))),
                 const SizedBox(height: 12),
                 Text('Recargas, tarjetas de regalo y pago de servicios\nen un solo lugar.',
                     textAlign: TextAlign.center,
@@ -108,7 +113,7 @@ class _BienvenidaMovil extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.verified_user_outlined, size: 16, color: Colors.white.withValues(alpha: 0.75)),
+                    Icon(Iconos.verified_user_outlined, size: 16, color: Colors.white.withValues(alpha: 0.75)),
                     const SizedBox(width: 6),
                     Flexible(
                       child: Text('Protegido con verificación en dos pasos',
@@ -221,7 +226,7 @@ class _Hero extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 28),
               ),
               onPressed: () => onAbrir(ModoAuth.registro),
-              icon: const Icon(Icons.person_add_alt_1),
+              icon: const Icon(Iconos.person_add_alt_1),
               label: const Text('Crear cuenta gratis'),
             ),
             OutlinedButton.icon(
@@ -232,7 +237,7 @@ class _Hero extends StatelessWidget {
                 textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
               ),
               onPressed: () => onAbrir(ModoAuth.login),
-              icon: const Icon(Icons.login),
+              icon: const Icon(Iconos.login),
               label: const Text('Iniciar sesión'),
             ),
           ],
@@ -262,9 +267,12 @@ class _Hero extends StatelessWidget {
                   children: [
                     const _Logo(tamano: 40, claro: true),
                     const SizedBox(width: 10),
-                    Text('GestoPago',
+                    Text(nombreApp,
                         style: t.textTheme.titleLarge
                             ?.copyWith(color: Colors.white, fontWeight: FontWeight.w800)),
+                    const SizedBox(width: 6),
+                    Text(lemaApp,
+                        style: t.textTheme.labelMedium?.copyWith(color: Colors.white.withValues(alpha: 0.75))),
                     const Spacer(),
                     TextButton(
                       style: TextButton.styleFrom(foregroundColor: Colors.white),
@@ -342,7 +350,7 @@ class _Maqueta extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.check_circle_rounded, color: Color(0xFF15803D), size: 28),
+                    const Icon(Iconos.check_circle_rounded, color: Color(0xFF15803D), size: 28),
                     const SizedBox(width: 10),
                     Text('Compra exitosa',
                         style: t.textTheme.titleMedium?.copyWith(
@@ -350,9 +358,9 @@ class _Maqueta extends StatelessWidget {
                   ],
                 ),
                 const Divider(height: 28),
-                fila(Icons.phone_android, 'Recarga celular', 'Tiempo aire', r'$100.00'),
-                fila(Icons.bolt, 'Luz', 'Pago de servicio', r'$356.40'),
-                fila(Icons.card_giftcard, 'Tarjeta de regalo', 'Código digital', r'$200.00'),
+                fila(Iconos.phone_android, 'Recarga celular', 'Tiempo aire', r'$100.00'),
+                fila(Iconos.bolt, 'Luz', 'Pago de servicio', r'$356.40'),
+                fila(Iconos.card_giftcard, 'Tarjeta de regalo', 'Código digital', r'$200.00'),
               ],
             ),
           ),
@@ -366,13 +374,13 @@ class _Caracteristicas extends StatelessWidget {
   const _Caracteristicas();
 
   static const _items = [
-    (Icons.storefront_outlined, 'Catálogo completo',
+    (Iconos.storefront_outlined, 'Catálogo completo',
         'Cientos de recargas, tarjetas y servicios organizados por categoría, con su precio.'),
-    (Icons.flash_on_outlined, 'Compra en pocos pasos',
+    (Iconos.flash_on_outlined, 'Compra en pocos pasos',
         'Elige, confirma con tu PIN y recibe el resultado al instante con tu comprobante.'),
-    (Icons.receipt_long_outlined, 'Historial de compras',
+    (Iconos.receipt_long_outlined, 'Historial de compras',
         'Consulta cada compra exitosa con su fecha, importe y número de autorización.'),
-    (Icons.verified_user_outlined, 'Seguridad de verdad',
+    (Iconos.verified_user_outlined, 'Seguridad de verdad',
         'Verificación en dos pasos, una sola sesión activa y comunicación cifrada.'),
   ];
 
@@ -565,19 +573,19 @@ class _Pie extends StatelessWidget {
             children: [
               TextButton.icon(
                 onPressed: () => LegalScreen.abrir(context, avisoPrivacidad),
-                icon: const Icon(Icons.privacy_tip_outlined, size: 18),
+                icon: const Icon(Iconos.privacy_tip_outlined, size: 18),
                 label: const Text('Aviso de Privacidad'),
               ),
               TextButton.icon(
                 onPressed: () => LegalScreen.abrir(context, terminosCondiciones),
-                icon: const Icon(Icons.gavel_outlined, size: 18),
+                icon: const Icon(Iconos.gavel_outlined, size: 18),
                 label: const Text('Términos y Condiciones'),
               ),
             ],
           ),
           const SizedBox(height: 4),
           Text(
-            '© ${DateTime.now().year} GestoPago App · Proyecto académico de comercio digital. '
+            '© ${DateTime.now().year} Pagaki · Proyecto académico de comercio digital. '
             'Pagos procesados por GestoPago.',
             textAlign: TextAlign.center,
             style: t.textTheme.bodySmall?.copyWith(color: t.colorScheme.onSurfaceVariant),
@@ -631,20 +639,6 @@ class _Logo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Center(
-      child: Container(
-        width: tamano,
-        height: tamano,
-        decoration: BoxDecoration(
-          color: claro ? Colors.white : cs.primary,
-          borderRadius: BorderRadius.circular(tamano * 0.28),
-          boxShadow: claro
-              ? [BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 24, offset: const Offset(0, 10))]
-              : null,
-        ),
-        child: Icon(Icons.payments_rounded, size: tamano * 0.55, color: claro ? cs.primary : cs.onPrimary),
-      ),
-    );
+    return Center(child: LogoPagaki(tamano: tamano, claro: claro, sombra: claro));
   }
 }

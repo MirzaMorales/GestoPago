@@ -1,3 +1,4 @@
+import '../../ui/iconos.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -128,7 +129,7 @@ class _RecuperarPanelState extends State<RecuperarPanel> {
             inputFormatters: [FiltrosEntrada.correo],
             autofillHints: const [AutofillHints.email],
             decoration: const InputDecoration(
-                labelText: 'Correo electrónico', prefixIcon: Icon(Icons.mail_outline), counterText: ''),
+                labelText: 'Correo electrónico', prefixIcon: Icon(Iconos.mail_outline), counterText: ''),
             validator: validarCorreo,
             onFieldSubmitted: (_) => _solicitar(),
           ),
@@ -157,7 +158,7 @@ class _RecuperarPanelState extends State<RecuperarPanel> {
               IconButton(
                 tooltip: 'Volver',
                 onPressed: _enviando ? null : () => setState(() => _desafio = null),
-                icon: const Icon(Icons.arrow_back),
+                icon: const Icon(Iconos.arrow_back),
               ),
               Expanded(
                 child: Text('Crea tu nueva contraseña',
@@ -197,10 +198,10 @@ class _RecuperarPanelState extends State<RecuperarPanel> {
             decoration: InputDecoration(
               labelText: 'Contraseña nueva',
               counterText: '',
-              prefixIcon: const Icon(Icons.lock_outline),
+              prefixIcon: const Icon(Iconos.lock_outline),
               suffixIcon: IconButton(
                 tooltip: _ocultar ? 'Mostrar contraseña' : 'Ocultar contraseña',
-                icon: Icon(_ocultar ? Icons.visibility_outlined : Icons.visibility_off_outlined),
+                icon: Icon(_ocultar ? Iconos.visibility_outlined : Iconos.visibility_off_outlined),
                 onPressed: () => setState(() => _ocultar = !_ocultar),
               ),
             ),
@@ -218,7 +219,7 @@ class _RecuperarPanelState extends State<RecuperarPanel> {
             decoration: const InputDecoration(
                 labelText: 'Confirma la contraseña nueva',
                 counterText: '',
-                prefixIcon: Icon(Icons.lock_reset_outlined)),
+                prefixIcon: Icon(Iconos.lock_reset_outlined)),
             validator: (v) => v == _nueva.text ? null : 'Las contraseñas no coinciden',
           ),
           if (_error != null) ...[const SizedBox(height: 16), AlertaAuth(_error!)],
