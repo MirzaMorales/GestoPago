@@ -106,16 +106,32 @@ class PagoServiceTest {
     }
 
     @Test
-    void pagarServicio_gestoPagoRechaza_devuelveElSaldoYNoExponeElTextoDelProveedor() {
-        when(gestoPagoTxService.enviarTx(PAYLOAD)).thenReturn(respuesta(12));
+    void pagarServicio_gestoPagoRechaza_devuelveElSaldoEInformaCodigoMensajeYFolio() {
+        when(gestoPagoTxService.enviarTx(PAYLOAD)).thenReturn(respuesta(55));
 
         PagoException ex = pagarYCapturar();
 
         assertEquals(CodigoErrorPago.GESTOPAGO_RECHAZADO, ex.getError());
-        assertEquals("Código de GestoPago: 12", ex.getDetalle());
-        assertFalse(ex.getDetalle().contains("Texto interno"));
-        verify(transaccionService).revertir(eq(77L), contains("12"));
+        assertEquals("Código de GestoPago: 55", ex.getDetalle());
+        assertEquals("55", ex.getCodigoProveedor());
+        assertEquals("Texto interno del proveedor", ex.getMensajeProveedor());
+        assertEquals(77L, ex.getIdTransaccion());
+        verify(transaccionService).revertir(eq(77L), contains("55"));
         verify(transaccionService, never()).confirmar(any(), any());
+    }
+
+    @Test
+    void pagarServicio_elMensajeDelProveedorSeSaneaAntesDeMostrarse() {
+        SendTxResponse sucia = SendTxResponse.builder().codigo(2)
+                .leyenda("<b>Saldo</b>\r\n  insuficiente\u0000 {x}" + "a".repeat(400)).respuestaCruda("<RESPONSE/>").build();
+        when(gestoPagoTxService.enviarTx(PAYLOAD)).thenReturn(sucia);
+
+        PagoException ex = pagarYCapturar();
+
+        assertEquals("02", ex.getCodigoProveedor());
+        assertTrue(ex.getMensajeProveedor().startsWith("Saldo insuficiente x a"));
+        assertFalse(ex.getMensajeProveedor().matches(".*[<>{}\\p{Cntrl}].*"));
+        assertTrue(ex.getMensajeProveedor().length() <= 201);
     }
 
     @Test

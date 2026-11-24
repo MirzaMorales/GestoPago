@@ -19,10 +19,22 @@ public class PagoException extends RuntimeException {
         this(error, detalle, null);
     }
 
+    /** Código de respuesta de GestoPago (por ejemplo "55"), cuando el rechazo viene del proveedor. */
+    private final String codigoProveedor;
+    /** Mensaje de GestoPago ya saneado (sin etiquetas ni caracteres de control, longitud acotada). */
+    private final String mensajeProveedor;
+
     public PagoException(CodigoErrorPago error, String detalle, Long idTransaccion) {
+        this(error, detalle, idTransaccion, null, null);
+    }
+
+    public PagoException(CodigoErrorPago error, String detalle, Long idTransaccion,
+                         String codigoProveedor, String mensajeProveedor) {
         super(error.getMensaje());
         this.error = error;
         this.detalle = detalle;
         this.idTransaccion = idTransaccion;
+        this.codigoProveedor = codigoProveedor;
+        this.mensajeProveedor = mensajeProveedor;
     }
 }

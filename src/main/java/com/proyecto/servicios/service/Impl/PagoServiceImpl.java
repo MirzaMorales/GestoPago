@@ -2,6 +2,7 @@ package com.proyecto.servicios.service.Impl;
 
 import com.proyecto.servicios.exception.CodigoErrorPago;
 import com.proyecto.servicios.exception.PagoException;
+import com.proyecto.servicios.exception.SugerenciasPago;
 import com.proyecto.servicios.model.EstadoCompra;
 import com.proyecto.servicios.model.gestopago.SendTxResponse;
 import com.proyecto.servicios.model.request.PagoServicioRequest;
@@ -84,13 +85,18 @@ public class PagoServiceImpl implements PagoService {
             transaccionService.marcarEnRevision(id, "sendTx: tiempo de espera (82); pendiente de confirmTx");
             throw new PagoException(CodigoErrorPago.GESTOPAGO_TIMEOUT, detalleEnRevision(id), id);
         }
+        String codigoProveedor = codigo == null ? null : String.format("%02d", codigo);
+        String mensajeProveedor = SugerenciasPago.sanear(respuesta.getLeyenda());
         if (Integer.valueOf(SendTxResponse.CODIGO_DUPLICADO_O_APLICADA).equals(codigo)) {
             transaccionService.revertir(id, "GestoPago: operación aplicada anteriormente (código 06)");
-            throw new PagoException(CodigoErrorPago.GESTOPAGO_DUPLICADO);
+            throw new PagoException(CodigoErrorPago.GESTOPAGO_DUPLICADO, "Código de GestoPago: 06", id,
+                    codigoProveedor, mensajeProveedor);
         }
-        // Rechazo definitivo: el texto del proveedor queda solo en la bitácora; al cliente solo se le informa el código
-        transaccionService.revertir(id, "GestoPago rechazó la transacción (código " + codigo + ")");
-        throw new PagoException(CodigoErrorPago.GESTOPAGO_RECHAZADO, "Código de GestoPago: " + codigo);
+        // Rechazo definitivo: se devuelve el saldo y se informa el código, el mensaje del proveedor (saneado) y el folio.
+        // La respuesta completa queda en la bitácora.
+        transaccionService.revertir(id, "GestoPago rechazó la transacción (código " + codigoProveedor + ")");
+        throw new PagoException(CodigoErrorPago.GESTOPAGO_RECHAZADO, "Código de GestoPago: " + codigoProveedor, id,
+                codigoProveedor, mensajeProveedor);
     }
 
     private String detalleEnRevision(Long id) {
