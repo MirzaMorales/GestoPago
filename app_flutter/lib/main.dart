@@ -1,3 +1,4 @@
+import 'ui/logo_pagaki.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/date_symbol_data_local.dart';
@@ -13,6 +14,7 @@ Future<void> main() async {
   final session = Session();
   await session.restaurar();
   runApp(GestoPagoApp(session: session));
+  session.client.calentar(); // despierta el backend mientras el usuario ve la pantalla inicial
 }
 
 class GestoPagoApp extends StatelessWidget {
@@ -27,7 +29,7 @@ class GestoPagoApp extends StatelessWidget {
       builder: (context, _) => MaterialApp(
         // Al cambiar de sesión se reconstruye el navegador completo: no quedan pantallas protegidas abiertas.
         key: ValueKey(session.usuario?.token ?? 'sin-sesion'),
-        title: 'GestoPago',
+        title: nombreApp,
         debugShowCheckedModeBanner: false,
         theme: construirTema(Brightness.light),
         darkTheme: construirTema(Brightness.dark),

@@ -1,3 +1,4 @@
+import '../ui/iconos.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -189,7 +190,7 @@ class _ProductScreenState extends State<ProductScreen> {
     if (!u.esCliente) {
       return const Card(
         child: Mensaje(
-          icono: Icons.admin_panel_settings_outlined,
+          icono: Iconos.admin_panel_settings_outlined,
           titulo: 'Compras solo para clientes',
           texto: 'Inicia sesión con una cuenta de cliente para comprar.',
         ),
@@ -198,7 +199,7 @@ class _ProductScreenState extends State<ProductScreen> {
     if (!p.disponibleParaCompra) {
       return const Card(
         child: Mensaje(
-          icono: Icons.block,
+          icono: Iconos.block,
           titulo: 'Producto no disponible',
           texto: 'Este producto no se puede comprar desde la aplicación.',
         ),
@@ -225,7 +226,7 @@ class _ProductScreenState extends State<ProductScreen> {
                   decoration: const InputDecoration(
                     labelText: 'Número de teléfono',
                     helperText: '10 dígitos',
-                    prefixIcon: Icon(Icons.smartphone),
+                    prefixIcon: Icon(Iconos.smartphone),
                   ),
                   validator: (v) =>
                       RegExp(r'^\d{10}$').hasMatch(v ?? '') ? null : 'Escribe un teléfono de 10 dígitos',
@@ -238,7 +239,7 @@ class _ProductScreenState extends State<ProductScreen> {
                   decoration: const InputDecoration(
                     labelText: 'Número de referencia o contrato',
                     helperText: 'Lo encuentras en tu recibo',
-                    prefixIcon: Icon(Icons.confirmation_number_outlined),
+                    prefixIcon: Icon(Iconos.confirmation_number_outlined),
                   ),
                   validator: (v) => (v ?? '').trim().isEmpty ? 'Escribe la referencia del recibo' : null,
                 ),
@@ -250,7 +251,7 @@ class _ProductScreenState extends State<ProductScreen> {
                   decoration: const InputDecoration(
                     labelText: 'Importe a pagar',
                     prefixText: r'$ ',
-                    prefixIcon: Icon(Icons.attach_money),
+                    prefixIcon: Icon(Iconos.attach_money),
                   ),
                   onChanged: (_) => setState(() {}),
                   validator: (v) {
@@ -287,7 +288,7 @@ class _ProductScreenState extends State<ProductScreen> {
               const SizedBox(height: 16),
               FilledButton.icon(
                 onPressed: _pagando ? null : _comprar,
-                icon: const Icon(Icons.shopping_bag_outlined),
+                icon: const Icon(Iconos.shopping_bag_outlined),
                 label: const Text('Revisar y comprar'),
               ),
             ],
@@ -307,7 +308,7 @@ class _ProductScreenState extends State<ProductScreen> {
         if (snap.hasError) {
           return ListTile(
             contentPadding: EdgeInsets.zero,
-            leading: const Icon(Icons.error_outline),
+            leading: const Icon(Iconos.error_outline),
             title: const Text('No se pudieron cargar tus cuentas'),
             trailing: TextButton(onPressed: _cargarPerfil, child: const Text('Reintentar')),
           );
@@ -316,14 +317,14 @@ class _ProductScreenState extends State<ProductScreen> {
         if (activas.isEmpty) {
           return const ListTile(
             contentPadding: EdgeInsets.zero,
-            leading: Icon(Icons.account_balance_wallet_outlined),
+            leading: Icon(Iconos.account_balance_wallet_outlined),
             title: Text('No tienes cuentas activas para pagar'),
           );
         }
         return DropdownButtonFormField<String>(
           initialValue: _cuenta?.numeroCuenta,
           decoration: const InputDecoration(
-              labelText: 'Pagar con', prefixIcon: Icon(Icons.account_balance_wallet_outlined)),
+              labelText: 'Pagar con', prefixIcon: Icon(Iconos.account_balance_wallet_outlined)),
           items: [
             for (final c in activas)
               DropdownMenuItem(
@@ -377,9 +378,9 @@ class _Informacion extends StatelessWidget {
               spacing: 8,
               runSpacing: 8,
               children: [
-                Chip(avatar: const Icon(Icons.category_outlined, size: 18), label: Text(p.categoria)),
+                Chip(avatar: const Icon(Iconos.category_outlined, size: 18), label: Text(p.categoria)),
                 Chip(
-                  avatar: Icon(p.disponibleParaCompra ? Icons.check_circle : Icons.cancel, size: 18,
+                  avatar: Icon(p.disponibleParaCompra ? Iconos.check_circle : Iconos.cancel, size: 18,
                       color: p.disponibleParaCompra ? Estados.exito : Estados.rechazo),
                   label: Text(p.disponibleParaCompra ? 'Disponible' : 'No disponible'),
                 ),
@@ -460,10 +461,10 @@ class _DialogoConfirmacionState extends State<_DialogoConfirmacion> {
                 decoration: InputDecoration(
                   labelText: 'PIN de tu cuenta',
                   counterText: '',
-                  prefixIcon: const Icon(Icons.pin_outlined),
+                  prefixIcon: const Icon(Iconos.pin_outlined),
                   suffixIcon: IconButton(
                     tooltip: _oculto ? 'Mostrar PIN' : 'Ocultar PIN',
-                    icon: Icon(_oculto ? Icons.visibility_outlined : Icons.visibility_off_outlined),
+                    icon: Icon(_oculto ? Iconos.visibility_outlined : Iconos.visibility_off_outlined),
                     onPressed: () => setState(() => _oculto = !_oculto),
                   ),
                 ),

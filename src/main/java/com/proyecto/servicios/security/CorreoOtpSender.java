@@ -39,6 +39,22 @@ public class CorreoOtpSender {
         enviar(destino, codigo, minutosVigencia, true);
     }
 
+    /** Código para autorizar el cambio del PIN de una cuenta. */
+    public void enviarCambioPin(String destino, String codigo, int minutosVigencia) {
+        enviarTexto(destino, "Pagaki: código para cambiar tu PIN",
+                "Tu código para cambiar el PIN de compras es: " + codigo + "\n\n"
+                        + "Vence en " + minutosVigencia + " minutos y solo puede usarse una vez.\n"
+                        + "Si no lo solicitaste, ignora este mensaje y cambia tu contraseña: tu PIN no cambiará.");
+    }
+
+    /** PIN temporal tras "Olvidé mi PIN". */
+    public void enviarPinTemporal(String destino, String pinTemporal) {
+        enviarTexto(destino, "Pagaki: tu PIN temporal",
+                "Tu PIN temporal de compras es: " + pinTemporal + "\n\n"
+                        + "Úsalo en tu próxima compra y cámbialo cuanto antes desde Mi cuenta (Configurar PIN de compras).\n"
+                        + "Si no lo solicitaste, entra a tu cuenta y cambia tu PIN y tu contraseña.");
+    }
+
     private void enviar(String destino, String codigo, int minutosVigencia, boolean recuperacion) {
         if (registrarCodigoEnLog) {
             // SOLO para desarrollo local sin SMTP (app.2fa.log-codigo=true). Nunca en producción.
@@ -55,16 +71,36 @@ public class CorreoOtpSender {
         }
         mensaje.setTo(destino);
         if (recuperacion) {
-            mensaje.setSubject("GestoPago: código para restablecer tu contraseña");
+            mensaje.setSubject("Pagaki: código para restablecer tu contraseña");
             mensaje.setText("Tu código para restablecer la contraseña es: " + codigo + "\n\n"
                     + "Vence en " + minutosVigencia + " minutos y solo puede usarse una vez.\n"
                     + "Si no lo solicitaste, ignora este mensaje: tu contraseña no cambiará.");
         } else {
-            mensaje.setSubject("GestoPago: tu código de verificación");
+            mensaje.setSubject("Pagaki: tu código de verificación");
             mensaje.setText("Tu código de verificación es: " + codigo + "\n\n"
                     + "Vence en " + minutosVigencia + " minutos y solo puede usarse una vez.\n"
                     + "Si no intentaste iniciar sesión, ignora este mensaje y cambia tu contraseña.");
         }
+        sender.send(mensaje);
+    }
+
+    private void enviarTexto(String destino, String asunto, String texto) {
+        if (registrarCodigoEnLog) {
+            // SOLO para desarrollo local sin SMTP (app.2fa.log-codigo=true). Nunca en producción.
+            log.warn("[2FA-DEV] {} para {}: {}", asunto, destino, texto);
+            return;
+        }
+        JavaMailSender sender = mailSender.getIfAvailable();
+        if (sender == null) {
+            throw new IllegalStateException("El servidor de correo no está configurado");
+        }
+        SimpleMailMessage mensaje = new SimpleMailMessage();
+        if (!remitente.isBlank()) {
+            mensaje.setFrom(remitente);
+        }
+        mensaje.setTo(destino);
+        mensaje.setSubject(asunto);
+        mensaje.setText(texto);
         sender.send(mensaje);
     }
 }

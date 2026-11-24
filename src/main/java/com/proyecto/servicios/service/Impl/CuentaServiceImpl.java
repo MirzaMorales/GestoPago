@@ -12,6 +12,7 @@ import com.proyecto.servicios.model.response.CuentaResponse;
 import com.proyecto.servicios.model.response.SaldoResponse;
 import com.proyecto.servicios.repositorys.CuentaRepository;
 import com.proyecto.servicios.service.CuentaService;
+import com.proyecto.servicios.service.PinSeguridadService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -31,6 +32,9 @@ public class CuentaServiceImpl implements CuentaService {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private PinSeguridadService pinSeguridad;
 
     @Override
     @Transactional(readOnly = true)
@@ -87,10 +91,9 @@ public class CuentaServiceImpl implements CuentaService {
                 .orElseThrow(() -> new CuentaNoEncontradaException("No se encontró la cuenta bancaria: " + numeroCuenta));
 
         if (cuenta.getPinAutorizacion() != null) {
-            if (request.getPinActual() == null
-                    || !passwordEncoder.matches(request.getPinActual(), cuenta.getPinAutorizacion())) {
-                throw new ValidacionNegocioException("El PIN actual es incorrecto");
-            }
+            // Cambiar un PIN existente exige el PIN actual y la verificación por correo (segundo factor).
+            pinSeguridad.verificarPinActual(cuenta, request.getPinActual());
+            pinSeguridad.consumirAutorizacion(numeroCuenta, request.getAutorizacionId());
         }
         cuenta.setPinAutorizacion(passwordEncoder.encode(request.getPinNuevo()));
         cuentaRepository.save(cuenta);

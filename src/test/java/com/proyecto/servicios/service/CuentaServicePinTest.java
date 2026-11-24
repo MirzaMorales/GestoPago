@@ -28,6 +28,9 @@ class CuentaServicePinTest {
     @Mock
     private PasswordEncoder passwordEncoder;
 
+    @Mock
+    private PinSeguridadService pinSeguridad;
+
     @InjectMocks
     private CuentaServiceImpl cuentaService;
 
@@ -53,25 +56,40 @@ class CuentaServicePinTest {
     }
 
     @Test
-    void establecerPin_conPinExistente_exigePinActualCorrecto() {
+    void establecerPin_conPinExistente_exigePinActualYVerificacion() {
         Cuenta cuenta = Cuenta.builder().numeroCuenta(NUMERO).pinAutorizacion("hashViejo").build();
         when(cuentaRepository.findByNumeroCuenta(NUMERO)).thenReturn(Optional.of(cuenta));
-        when(passwordEncoder.matches("0000", "hashViejo")).thenReturn(false);
+        doThrow(new ValidacionNegocioException("El PIN actual es incorrecto"))
+                .when(pinSeguridad).verificarPinActual(cuenta, "0000");
 
         assertThrows(ValidacionNegocioException.class, () -> cuentaService.establecerPin(request("1234", "0000")));
-        assertThrows(ValidacionNegocioException.class, () -> cuentaService.establecerPin(request("1234", null)));
+        verify(pinSeguridad, never()).consumirAutorizacion(any(), any());
         verify(cuentaRepository, never()).save(any());
     }
 
     @Test
-    void establecerPin_cambioConPinActualCorrecto_actualizaHash() {
+    void establecerPin_sinAutorizacionDelCorreo_noCambia() {
         Cuenta cuenta = Cuenta.builder().numeroCuenta(NUMERO).pinAutorizacion("hashViejo").build();
         when(cuentaRepository.findByNumeroCuenta(NUMERO)).thenReturn(Optional.of(cuenta));
-        when(passwordEncoder.matches("1111", "hashViejo")).thenReturn(true);
+        doThrow(new ValidacionNegocioException("La verificación expiró"))
+                .when(pinSeguridad).consumirAutorizacion(NUMERO, null);
+
+        assertThrows(ValidacionNegocioException.class, () -> cuentaService.establecerPin(request("1234", "1111")));
+        verify(cuentaRepository, never()).save(any());
+    }
+
+    @Test
+    void establecerPin_cambioConPinActualYAutorizacion_actualizaHash() {
+        Cuenta cuenta = Cuenta.builder().numeroCuenta(NUMERO).pinAutorizacion("hashViejo").build();
+        when(cuentaRepository.findByNumeroCuenta(NUMERO)).thenReturn(Optional.of(cuenta));
         when(passwordEncoder.encode("2222")).thenReturn("hashNuevo");
 
-        cuentaService.establecerPin(request("2222", "1111"));
+        EstablecePinRequest req = request("2222", "1111");
+        req.setAutorizacionId("auth-1");
+        cuentaService.establecerPin(req);
 
+        verify(pinSeguridad).verificarPinActual(cuenta, "1111");
+        verify(pinSeguridad).consumirAutorizacion(NUMERO, "auth-1");
         assertEquals("hashNuevo", cuenta.getPinAutorizacion());
     }
 

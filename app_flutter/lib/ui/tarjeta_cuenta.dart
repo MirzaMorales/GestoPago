@@ -1,3 +1,5 @@
+import 'iconos.dart';
+import 'logo_pagaki.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -101,13 +103,13 @@ class _TarjetaCuentaState extends State<TarjetaCuenta> {
                               children: [
                                 Row(
                                   children: [
-                                    const Icon(Icons.payments_rounded, color: blanco, size: 22),
+                                    const LogoPagaki(tamano: 24, claro: true),
                                     const SizedBox(width: 8),
                                     const Flexible(
                                       child: FittedBox(
                                         fit: BoxFit.scaleDown,
                                         alignment: Alignment.centerLeft,
-                                        child: Text('GestoPago',
+                                        child: Text(nombreApp,
                                             style: TextStyle(
                                                 fontSize: 17, fontWeight: FontWeight.w800, letterSpacing: 0.4)),
                                       ),
@@ -123,7 +125,7 @@ class _TarjetaCuentaState extends State<TarjetaCuenta> {
                                   children: [
                                     const _Chip(),
                                     const SizedBox(width: 10),
-                                    if (!compacta) Icon(Icons.contactless_outlined, color: suave, size: 26),
+                                    if (!compacta) Icon(Iconos.contactless_outlined, color: suave, size: 26),
                                     const SizedBox(width: 10),
                                     Expanded(
                                       child: Column(
@@ -168,12 +170,12 @@ class _TarjetaCuentaState extends State<TarjetaCuenta> {
                                       ),
                                     ),
                                     _Accion(
-                                      icono: _verNumero ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                                      icono: _verNumero ? Iconos.visibility_off_outlined : Iconos.visibility_outlined,
                                       tooltip: _verNumero ? 'Ocultar número' : 'Ver número completo',
                                       onTap: () => setState(() => _verNumero = !_verNumero),
                                     ),
                                     if (_verNumero)
-                                      _Accion(icono: Icons.copy_outlined, tooltip: 'Copiar número', onTap: _copiar),
+                                      _Accion(icono: Iconos.copy_outlined, tooltip: 'Copiar número', onTap: _copiar),
                                   ],
                                 ),
                                 const SizedBox(height: 12),

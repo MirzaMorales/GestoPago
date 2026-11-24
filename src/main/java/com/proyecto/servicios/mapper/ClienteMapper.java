@@ -79,6 +79,7 @@ public class ClienteMapper {
                 .clienteId(entity.getCliente() != null ? entity.getCliente().getId() : null)
                 .saldo(entity.getSaldo())
                 .estatus(entity.getEstatus())
+                .tienePin(entity.getPinAutorizacion() != null)
                 .fechaApertura(entity.getFechaApertura())
                 .fechaActualizacion(entity.getFechaActualizacion())
                 .build();

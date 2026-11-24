@@ -1,3 +1,4 @@
+import '../../ui/iconos.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
@@ -42,16 +43,16 @@ class _Paso {
 }
 
 const _pasos = [
-  _Paso('Datos personales', Icons.badge_outlined,
+  _Paso('Datos personales', Iconos.badge_outlined,
       ['nombre', 'segundoNombre', 'apellidoPaterno', 'apellidoMaterno', 'fechaNacimiento', 'sexo',
        'estadoCivil', 'nacionalidad', 'curp', 'rfc']),
-  _Paso('Contacto', Icons.contact_mail_outlined,
+  _Paso('Contacto', Iconos.contact_mail_outlined,
       ['correo', 'telefonoMovil', 'telefonoAlternativo', 'ocupacion', 'empresa', 'ingresoMensual']),
-  _Paso('Domicilio', Icons.home_outlined,
+  _Paso('Domicilio', Iconos.home_outlined,
       ['domicilio', 'domicilio.calle', 'domicilio.numeroExterior', 'domicilio.numeroInterior',
        'domicilio.colonia', 'domicilio.municipio', 'domicilio.estado', 'domicilio.codigoPostal',
        'domicilio.pais']),
-  _Paso('Acceso', Icons.lock_outline, ['password', 'aceptaTerminos', 'versionTerminos']),
+  _Paso('Acceso', Iconos.lock_outline, ['password', 'aceptaTerminos', 'versionTerminos']),
 ];
 
 class _RegisterPanelState extends State<RegisterPanel> {
@@ -316,7 +317,7 @@ class _RegisterPanelState extends State<RegisterPanel> {
 
   List<Widget> _pasoPersonal() => [
         _fila([
-          _campo('nombre', 'Nombre', formato: [FiltrosEntrada.soloLetras], maxLength: 50, icono: Icons.person_outline, validar: validarNombrePropio,
+          _campo('nombre', 'Nombre', formato: [FiltrosEntrada.soloLetras], maxLength: 50, icono: Iconos.person_outline, validar: validarNombrePropio,
               autofill: const [AutofillHints.givenName]),
           _campo('segundoNombre', 'Segundo nombre', formato: [FiltrosEntrada.soloLetras], maxLength: 50, opcional: true, validar: validarNombrePropio),
         ]),
@@ -333,8 +334,8 @@ class _RegisterPanelState extends State<RegisterPanel> {
             onTap: _elegirFecha,
             decoration: InputDecoration(
               labelText: 'Fecha de nacimiento',
-              prefixIcon: const Icon(Icons.cake_outlined),
-              suffixIcon: const Icon(Icons.calendar_month_outlined),
+              prefixIcon: const Icon(Iconos.cake_outlined),
+              suffixIcon: const Icon(Iconos.calendar_month_outlined),
               helperText: 'Debes ser mayor de edad',
               errorText: _errServidor['fechaNacimiento'],
             ),
@@ -342,12 +343,12 @@ class _RegisterPanelState extends State<RegisterPanel> {
           ),
         ),
         _fila([
-          _seleccion('sexo', 'Sexo', Icons.wc_outlined, const ['Masculino', 'Femenino'], _sexo,
+          _seleccion('sexo', 'Sexo', Iconos.wc_outlined, const ['Masculino', 'Femenino'], _sexo,
               (v) {
                 setState(() => _sexo = v);
                 _revalidar(const ['curp']);
               }),
-          _seleccion('estadoCivil', 'Estado civil', Icons.favorite_border,
+          _seleccion('estadoCivil', 'Estado civil', Iconos.favorite_border,
               const ['Soltero(a)', 'Casado(a)', 'Unión libre', 'Divorciado(a)', 'Viudo(a)'],
               _estadoCivil, (v) => setState(() => _estadoCivil = v)),
         ]),
@@ -360,21 +361,21 @@ class _RegisterPanelState extends State<RegisterPanel> {
             enabled: false,
             decoration: const InputDecoration(
               labelText: 'Nacionalidad',
-              prefixIcon: Icon(Icons.flag_outlined),
-              suffixIcon: Icon(Icons.lock_outline, size: 18),
+              prefixIcon: Icon(Iconos.flag_outlined),
+              suffixIcon: Icon(Iconos.lock_outline, size: 18),
               helperText: 'Por ahora el servicio es solo para personas de nacionalidad mexicana',
             ),
           ),
         ),
         _campo('curp', 'CURP',
-            icono: Icons.fingerprint,
+            icono: Iconos.fingerprint,
             maxLength: 18,
             mayusculas: TextCapitalization.characters,
             formato: [_Mayusculas(), FilteringTextInputFormatter.allow(RegExp(r'[A-Za-z0-9]'))],
             ayuda: '18 caracteres; debe coincidir con tu fecha de nacimiento y sexo',
             validar: (s) => validarCurp(s, nacimiento: _nacimiento, sexo: _sexo)),
         _campo('rfc', 'RFC',
-            icono: Icons.description_outlined,
+            icono: Iconos.description_outlined,
             maxLength: 13,
             mayusculas: TextCapitalization.characters,
             formato: [_Mayusculas(), FilteringTextInputFormatter.allow(RegExp(r'[A-Za-z0-9&Ññ]'))],
@@ -386,7 +387,7 @@ class _RegisterPanelState extends State<RegisterPanel> {
         _campo('correo', 'Correo electrónico',
             formato: [FiltrosEntrada.correo],
             maxLength: 100,
-            icono: Icons.mail_outline,
+            icono: Iconos.mail_outline,
             teclado: TextInputType.emailAddress,
             mayusculas: TextCapitalization.none,
             autofill: const [AutofillHints.email],
@@ -394,7 +395,7 @@ class _RegisterPanelState extends State<RegisterPanel> {
             validar: (s) => validarCorreo(s)),
         _fila([
           _campo('telefonoMovil', 'Teléfono móvil',
-              icono: Icons.smartphone,
+              icono: Iconos.smartphone,
               teclado: TextInputType.phone,
               maxLength: 10,
               formato: [FilteringTextInputFormatter.digitsOnly],
@@ -427,11 +428,11 @@ class _RegisterPanelState extends State<RegisterPanel> {
           ),
         ),
         _campo('empresa', 'Empresa',
-            icono: Icons.apartment_outlined,
+            icono: Iconos.apartment_outlined,
             maxLength: 100,
             validar: (s) => validarTextoMinimo(s, nombre: 'La empresa')),
         _campo('ingresoMensual', 'Ingreso mensual',
-            icono: Icons.payments_outlined,
+            icono: Iconos.payments_outlined,
             teclado: const TextInputType.numberWithOptions(decimal: true),
             formato: [FilteringTextInputFormatter.allow(RegExp(r'^\d{0,13}\.?\d{0,2}'))],
             validar: validarIngreso),
@@ -469,7 +470,7 @@ class _RegisterPanelState extends State<RegisterPanel> {
         ),
         const SizedBox(height: 14),
         _campo('domicilio.calle', 'Calle',
-            icono: Icons.signpost_outlined,
+            icono: Iconos.signpost_outlined,
             maxLength: maxCalle,
             ayuda: 'Entre 3 y $maxCalle caracteres',
             validar: validarCalle,
@@ -504,12 +505,12 @@ class _RegisterPanelState extends State<RegisterPanel> {
           decoration: InputDecoration(
             labelText: 'Contraseña',
             counterText: '',
-            prefixIcon: const Icon(Icons.lock_outline),
+            prefixIcon: const Icon(Iconos.lock_outline),
             errorText: _errServidor['password'],
             errorMaxLines: 3,
             suffixIcon: IconButton(
               tooltip: _ocultar ? 'Mostrar contraseña' : 'Ocultar contraseña',
-              icon: Icon(_ocultar ? Icons.visibility_outlined : Icons.visibility_off_outlined),
+              icon: Icon(_ocultar ? Iconos.visibility_outlined : Iconos.visibility_off_outlined),
               onPressed: () => setState(() => _ocultar = !_ocultar),
             ),
           ),
@@ -526,7 +527,7 @@ class _RegisterPanelState extends State<RegisterPanel> {
           inputFormatters: [FiltrosEntrada.sinControl],
           obscureText: _ocultar,
           decoration: const InputDecoration(
-              labelText: 'Confirma la contraseña', prefixIcon: Icon(Icons.lock_reset_outlined), counterText: ''),
+              labelText: 'Confirma la contraseña', prefixIcon: Icon(Iconos.lock_reset_outlined), counterText: ''),
           validator: (v) => v == pass ? null : 'Las contraseñas no coinciden',
         ),
       ),
@@ -539,7 +540,7 @@ class _RegisterPanelState extends State<RegisterPanel> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(
-                  r.$2.hasMatch(pass) ? Icons.check_circle : Icons.radio_button_unchecked,
+                  r.$2.hasMatch(pass) ? Iconos.check_circle : Iconos.radio_button_unchecked,
                   size: 18,
                   color: r.$2.hasMatch(pass) ? t.colorScheme.primary : t.colorScheme.outline,
                 ),
@@ -558,7 +559,7 @@ class _RegisterPanelState extends State<RegisterPanel> {
         ),
         child: Row(
           children: [
-            Icon(Icons.account_balance_wallet_outlined, color: t.colorScheme.primary),
+            Icon(Iconos.account_balance_wallet_outlined, color: t.colorScheme.primary),
             const SizedBox(width: 12),
             Expanded(
               child: Text(

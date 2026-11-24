@@ -1,3 +1,4 @@
+import '../ui/iconos.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -180,7 +181,7 @@ class _FormularioState extends State<_Formulario> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(children: [
-                        Icon(Icons.badge_outlined, color: t.colorScheme.primary),
+                        Icon(Iconos.badge_outlined, color: t.colorScheme.primary),
                         const SizedBox(width: 8),
                         Text('Datos de identidad', style: t.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
                       ]),
@@ -206,7 +207,7 @@ class _FormularioState extends State<_Formulario> {
                   keyboardType: TextInputType.phone,
                   maxLength: 10,
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  decoration: _deco('telefonoMovil', 'Teléfono móvil', icono: Icons.smartphone),
+                  decoration: _deco('telefonoMovil', 'Teléfono móvil', icono: Iconos.smartphone),
                   validator: (v) => validarTelefono((v ?? '').trim()),
                 ),
                 TextFormField(
@@ -221,7 +222,7 @@ class _FormularioState extends State<_Formulario> {
               separador,
               DropdownButtonFormField<String>(
                 initialValue: _estadoCivil,
-                decoration: _deco('estadoCivil', 'Estado civil', icono: Icons.favorite_border),
+                decoration: _deco('estadoCivil', 'Estado civil', icono: Iconos.favorite_border),
                 items: [
                   for (final e in {..._estadosCiviles, ?_estadoCivil})
                     DropdownMenuItem(value: e, child: Text(e)),
@@ -251,7 +252,7 @@ class _FormularioState extends State<_Formulario> {
                 controller: _empresa,
                 maxLength: 100,
                 inputFormatters: [FiltrosEntrada.textoLibre],
-                decoration: _deco('empresa', 'Empresa', icono: Icons.apartment_outlined),
+                decoration: _deco('empresa', 'Empresa', icono: Iconos.apartment_outlined),
                 validator: (v) => validarTextoMinimo((v ?? '').trim(), nombre: 'La empresa'),
               ),
               separador,
@@ -259,7 +260,7 @@ class _FormularioState extends State<_Formulario> {
                 controller: _ingreso,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
                 inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d{0,13}\.?\d{0,2}'))],
-                decoration: _deco('ingresoMensual', 'Ingreso mensual', icono: Icons.payments_outlined, prefijo: r'$ '),
+                decoration: _deco('ingresoMensual', 'Ingreso mensual', icono: Iconos.payments_outlined, prefijo: r'$ '),
                 validator: (v) => validarIngreso((v ?? '').trim()),
               ),
               const SizedBox(height: 24),
@@ -286,7 +287,7 @@ class _FormularioState extends State<_Formulario> {
                 controller: _calle,
                 maxLength: maxCalle,
                 inputFormatters: [FiltrosEntrada.textoLibre],
-                decoration: _deco('domicilio.calle', 'Calle', icono: Icons.signpost_outlined),
+                decoration: _deco('domicilio.calle', 'Calle', icono: Iconos.signpost_outlined),
                 validator: (v) => validarCalle((v ?? '').trim()),
               ),
               separador,
@@ -314,7 +315,7 @@ class _FormularioState extends State<_Formulario> {
                 onPressed: _guardando ? null : _guardar,
                 icon: _guardando
                     ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                    : const Icon(Icons.save_outlined),
+                    : const Icon(Iconos.save_outlined),
                 label: const Text('Guardar cambios'),
               ),
             ],

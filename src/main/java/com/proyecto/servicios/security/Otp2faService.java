@@ -61,16 +61,29 @@ public class Otp2faService {
 
     /** Genera un código, lo guarda (hash) y lo envía por correo. */
     public Desafio crear(Long usuarioId, String correoDestino, String plataforma, boolean cerrarSesionAnterior) {
-        return crear(usuarioId, correoDestino, plataforma, cerrarSesionAnterior, false);
+        return crear(usuarioId, correoDestino, plataforma, cerrarSesionAnterior, null);
     }
 
     /** Código para restablecer la contraseña: mismo resguardo (hash, vigencia, intentos, un uso), otro propósito. */
     public Desafio crearRecuperacion(Long usuarioId, String correoDestino) {
-        return crear(usuarioId, correoDestino, PROPOSITO_RECUPERACION, false, true);
+        return crear(usuarioId, correoDestino, PROPOSITO_RECUPERACION, false, PROPOSITO_RECUPERACION);
+    }
+
+    /** Prefijo del propósito del código para cambiar el PIN de una cuenta (lleva el número de cuenta detrás). */
+    public static final String PROPOSITO_PIN = "PIN:";
+
+    /** Segundo factor para cambiar el PIN de una cuenta: el código queda ligado a esa cuenta. */
+    public Desafio crearCambioPin(Long usuarioId, String correoDestino, String numeroCuenta) {
+        return crear(usuarioId, correoDestino, PROPOSITO_PIN + numeroCuenta, false, "PIN");
+    }
+
+    /** true si el código no es de inicio de sesión (recuperación o PIN): nunca debe abrir una sesión. */
+    public static boolean esDeOtroProposito(String plataforma) {
+        return PROPOSITO_RECUPERACION.equals(plataforma) || (plataforma != null && plataforma.startsWith(PROPOSITO_PIN));
     }
 
     private Desafio crear(Long usuarioId, String correoDestino, String plataforma, boolean cerrarSesionAnterior,
-                          boolean recuperacion) {
+                          String tipoCorreo) {
         limitarEnvios(usuarioId);
 
         String codigo = String.format("%06d", random.nextInt(1_000_000));
@@ -79,8 +92,10 @@ public class Otp2faService {
         redis.opsForValue().set(CLAVE_DESAFIO + desafioId, valor, Duration.ofSeconds(ttlSegundos));
 
         try {
-            if (recuperacion) {
+            if (PROPOSITO_RECUPERACION.equals(tipoCorreo)) {
                 correo.enviarRecuperacion(correoDestino, codigo, Math.max(1, ttlSegundos / 60));
+            } else if ("PIN".equals(tipoCorreo)) {
+                correo.enviarCambioPin(correoDestino, codigo, Math.max(1, ttlSegundos / 60));
             } else {
                 correo.enviar(correoDestino, codigo, Math.max(1, ttlSegundos / 60));
             }

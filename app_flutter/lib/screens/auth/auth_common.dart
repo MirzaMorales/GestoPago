@@ -1,3 +1,4 @@
+import '../../ui/iconos.dart';
 import 'package:flutter/material.dart';
 
 import '../../state/session.dart';
@@ -48,7 +49,7 @@ class AlertaAuth extends StatelessWidget {
         decoration: BoxDecoration(color: fondo, borderRadius: BorderRadius.circular(12)),
         child: Row(
           children: [
-            Icon(exito ? Icons.check_circle_outline : Icons.error_outline, color: frente),
+            Icon(exito ? Iconos.check_circle_outline : Iconos.error_outline, color: frente),
             const SizedBox(width: 12),
             Expanded(child: Text(texto, style: TextStyle(color: frente))),
           ],
@@ -162,7 +163,7 @@ Future<void> abrirModalAuth(BuildContext context, Session session, ModoAuth modo
                 right: 8,
                 child: IconButton(
                   tooltip: 'Cerrar',
-                  icon: const Icon(Icons.close),
+                  icon: const Icon(Iconos.close),
                   onPressed: () => Navigator.pop(ctx),
                 ),
               ),
@@ -218,7 +219,7 @@ class ReglasContrasena extends StatelessWidget {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(r.$2.hasMatch(valor) ? Icons.check_circle : Icons.radio_button_unchecked,
+              Icon(r.$2.hasMatch(valor) ? Iconos.check_circle : Iconos.radio_button_unchecked,
                   size: 18, color: r.$2.hasMatch(valor) ? t.colorScheme.primary : t.colorScheme.outline),
               const SizedBox(width: 6),
               Text(r.$1, style: t.textTheme.bodySmall),

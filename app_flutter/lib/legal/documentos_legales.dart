@@ -10,7 +10,7 @@ const fechaLegal = '10 de noviembre de 2026';
 
 /// Datos de quien responde por los datos personales. COMPLETAR antes de publicar.
 class Responsable {
-  static const nombre = 'Equipo de desarrollo de GestoPago App (proyecto académico)';
+  static const nombre = 'Equipo de desarrollo de Pagaki (proyecto académico)';
   static const domicilio = '[Completar: domicilio del responsable]';
   static const correo = '[Completar: correo de privacidad]';
 }
@@ -155,10 +155,10 @@ const terminosCondiciones = DocumentoLegal(
   ],
   secciones: [
     SeccionLegal('1. Aceptación', [
-      'Estos Términos regulan el uso de GestoPago App en su versión web y móvil. Al crear tu cuenta y marcar '
+      'Estos Términos regulan el uso de Pagaki en su versión web y móvil. Al crear tu cuenta y marcar '
           'la casilla de aceptación confirmas que los leíste y que estás de acuerdo con ellos y con el Aviso de '
           'Privacidad.',
-      'GestoPago App es un prototipo desarrollado como proyecto académico que se conecta a los servicios de '
+      'Pagaki es un prototipo desarrollado como proyecto académico que se conecta a los servicios de '
           'GestoPago para recargas, tarjetas de regalo y pago de servicios. No es una institución financiera.',
     ]),
     SeccionLegal('2. Requisitos para usar la app', [], puntos: [

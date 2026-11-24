@@ -1,3 +1,4 @@
+import '../ui/iconos.dart';
 import 'package:flutter/material.dart';
 
 import '../api/models.dart';
@@ -61,7 +62,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
       appBar: AppBar(
         title: const Text('Catálogo'),
         actions: [
-          IconButton(tooltip: 'Actualizar', onPressed: _recargar, icon: const Icon(Icons.refresh)),
+          IconButton(tooltip: 'Actualizar', onPressed: _recargar, icon: const Icon(Iconos.refresh)),
           const SizedBox(width: 8),
         ],
       ),
@@ -75,46 +76,87 @@ class _CatalogScreenState extends State<CatalogScreen> {
           final productos = snap.data!;
           if (productos.isEmpty) {
             return Mensaje(
-              icono: Icons.inventory_2_outlined,
+              icono: Iconos.inventory_2_outlined,
               titulo: 'El catálogo está vacío',
               texto: 'Aún no hay productos sincronizados con GestoPago.',
               accion: _recargar,
             );
           }
-          final categorias = {'Todas', ...productos.map((p) => p.categoria)}.toList();
+          final conteo = <String, int>{};
+          for (final p in productos) {
+            if (_soloDisponibles && !p.disponibleParaCompra) continue;
+            conteo[p.categoria] = (conteo[p.categoria] ?? 0) + 1;
+          }
+          final categorias = conteo.keys.toList()..sort();
+          if (_categoria != 'Todas' && !conteo.containsKey(_categoria)) {
+            // La categoría elegida ya no tiene productos con el filtro actual: se vuelve a "Todas".
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) setState(() => _categoria = 'Todas');
+            });
+          }
           final servicios = _agrupar(productos);
-          return Centrado(
-            child: CustomScrollView(
-              slivers: [
-                SliverToBoxAdapter(child: _filtros(categorias, productos.length)),
-                if (servicios.isEmpty)
-                  const SliverFillRemaining(
-                    hasScrollBody: false,
-                    child: Mensaje(
-                      icono: Icons.search_off,
-                      titulo: 'Sin resultados',
-                      texto: 'Prueba con otro nombre o categoría.',
+          final ancho = MediaQuery.sizeOf(context).width >= 900;
+          final resultados = SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: Text(
+                '${servicios.length} servicio${servicios.length == 1 ? '' : 's'}',
+                style: Theme.of(context)
+                    .textTheme
+                    .bodyMedium
+                    ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+              ),
+            ),
+          );
+          final rejilla = servicios.isEmpty
+              ? const SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Mensaje(
+                    icono: Iconos.search_off,
+                    titulo: 'Sin resultados',
+                    texto: 'Prueba con otro nombre o categoría.',
+                  ),
+                )
+              : SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+                  sliver: SliverGrid(
+                    gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                      maxCrossAxisExtent: 260,
+                      mainAxisExtent: 168,
+                      crossAxisSpacing: 12,
+                      mainAxisSpacing: 12,
                     ),
-                  )
-                else
-                  SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
-                    sliver: SliverGrid(
-                      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                        maxCrossAxisExtent: 260,
-                        mainAxisExtent: 168,
-                        crossAxisSpacing: 12,
-                        mainAxisSpacing: 12,
+                    delegate: SliverChildBuilderDelegate(
+                      (context, i) => _TarjetaServicio(
+                        servicio: servicios[i],
+                        onTap: () => _abrirServicio(servicios[i]),
                       ),
-                      delegate: SliverChildBuilderDelegate(
-                        (context, i) => _TarjetaServicio(
-                          servicio: servicios[i],
-                          onTap: () => _abrirServicio(servicios[i]),
-                        ),
-                        childCount: servicios.length,
-                      ),
+                      childCount: servicios.length,
                     ),
                   ),
+                );
+          final contenido = CustomScrollView(
+            slivers: [
+              if (!ancho) SliverToBoxAdapter(child: _filtros(categorias, conteo)),
+              resultados,
+              rejilla,
+            ],
+          );
+          if (!ancho) return Centrado(child: contenido);
+          return Centrado(
+            maxWidth: 1280,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(
+                  width: 280,
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(24, 4, 8, 24),
+                    child: _filtros(categorias, conteo, lateral: true),
+                  ),
+                ),
+                VerticalDivider(width: 1, color: Theme.of(context).colorScheme.outlineVariant),
+                Expanded(child: contenido),
               ],
             ),
           );
@@ -123,51 +165,85 @@ class _CatalogScreenState extends State<CatalogScreen> {
     );
   }
 
-  Widget _filtros(List<String> categorias, int total) {
+  Widget _filtros(List<String> categorias, Map<String, int> conteo, {bool lateral = false}) {
     final t = Theme.of(context);
+    final total = conteo.values.fold<int>(0, (a, b) => a + b);
+    final buscador = SearchBar(
+      controller: _busqueda,
+      hintText: 'Buscar servicio o producto',
+      leading: const Icon(Iconos.search),
+      elevation: const WidgetStatePropertyAll(0),
+      backgroundColor: WidgetStatePropertyAll(t.colorScheme.surfaceContainerLowest),
+      side: WidgetStatePropertyAll(BorderSide(color: t.colorScheme.outlineVariant)),
+      trailing: [
+        if (_busqueda.text.isNotEmpty)
+          IconButton(
+            tooltip: 'Limpiar',
+            icon: const Icon(Iconos.close),
+            onPressed: () => setState(_busqueda.clear),
+          ),
+      ],
+      onChanged: (_) => setState(() {}),
+    );
+    final disponibles = SwitchListTile(
+      contentPadding: EdgeInsets.zero,
+      dense: true,
+      title: const Text('Solo disponibles'),
+      subtitle: const Text('Oculta lo que no se puede comprar'),
+      value: _soloDisponibles,
+      onChanged: (v) => setState(() => _soloDisponibles = v),
+    );
+    if (lateral) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          buscador,
+          const SizedBox(height: 20),
+          Text('CATEGORÍA',
+              style: t.textTheme.labelLarge?.copyWith(
+                  fontWeight: FontWeight.w700, color: t.colorScheme.onSurfaceVariant, letterSpacing: 0.4)),
+          const SizedBox(height: 8),
+          for (final c in ['Todas', ...categorias])
+            Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: ListTile(
+                dense: true,
+                selected: _categoria == c,
+                selectedTileColor: t.colorScheme.primaryContainer.withValues(alpha: 0.6),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                title: Text(c),
+                trailing: Text('${c == 'Todas' ? total : conteo[c]}', style: t.textTheme.labelMedium),
+                onTap: () => setState(() => _categoria = c),
+              ),
+            ),
+          const SizedBox(height: 12),
+          disponibles,
+        ],
+      );
+    }
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SearchBar(
-            controller: _busqueda,
-            hintText: 'Buscar servicio o producto',
-            leading: const Icon(Icons.search),
-            elevation: const WidgetStatePropertyAll(0),
-            backgroundColor: WidgetStatePropertyAll(t.colorScheme.surfaceContainerLowest),
-            side: WidgetStatePropertyAll(BorderSide(color: t.colorScheme.outlineVariant)),
-            trailing: [
-              if (_busqueda.text.isNotEmpty)
-                IconButton(
-                  tooltip: 'Limpiar',
-                  icon: const Icon(Icons.close),
-                  onPressed: () => setState(_busqueda.clear),
-                ),
-            ],
-            onChanged: (_) => setState(() {}),
-          ),
+          buscador,
           const SizedBox(height: 12),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                for (final c in categorias)
-                  Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: ChoiceChip(
-                      label: Text(c),
-                      selected: _categoria == c,
-                      onSelected: (_) => setState(() => _categoria = c),
-                    ),
-                  ),
-                FilterChip(
-                  label: const Text('Solo disponibles'),
-                  selected: _soloDisponibles,
-                  onSelected: (v) => setState(() => _soloDisponibles = v),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final c in ['Todas', ...categorias])
+                ChoiceChip(
+                  label: Text(c == 'Todas' ? 'Todas ($total)' : '$c (${conteo[c]})'),
+                  selected: _categoria == c,
+                  onSelected: (_) => setState(() => _categoria = c),
                 ),
-              ],
-            ),
+              FilterChip(
+                label: const Text('Solo disponibles'),
+                selected: _soloDisponibles,
+                onSelected: (v) => setState(() => _soloDisponibles = v),
+              ),
+            ],
           ),
         ],
       ),

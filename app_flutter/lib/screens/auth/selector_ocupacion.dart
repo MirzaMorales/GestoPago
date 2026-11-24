@@ -1,3 +1,4 @@
+import '../../ui/iconos.dart';
 import 'package:flutter/material.dart';
 
 import '../../api/api_client.dart';
@@ -48,7 +49,7 @@ class _SelectorOcupacionState extends State<SelectorOcupacion> {
         if (snap.connectionState != ConnectionState.done) {
           return const InputDecorator(
             decoration: InputDecoration(
-                labelText: 'Ocupación', prefixIcon: Icon(Icons.work_outline), enabled: false),
+                labelText: 'Ocupación', prefixIcon: Icon(Iconos.work_outline), enabled: false),
             child: LinearProgressIndicator(),
           );
         }
@@ -57,11 +58,11 @@ class _SelectorOcupacionState extends State<SelectorOcupacion> {
           return InputDecorator(
             decoration: InputDecoration(
               labelText: 'Ocupación',
-              prefixIcon: const Icon(Icons.work_outline),
+              prefixIcon: const Icon(Iconos.work_outline),
               errorText: e is ApiException ? e.mensaje : 'No se pudo cargar el catálogo de ocupaciones',
               suffixIcon: IconButton(
                 tooltip: 'Reintentar',
-                icon: const Icon(Icons.refresh),
+                icon: const Icon(Iconos.refresh),
                 onPressed: _reintentar,
               ),
             ),
@@ -80,7 +81,7 @@ class _SelectorOcupacionState extends State<SelectorOcupacion> {
           expandedInsets: EdgeInsets.zero,
           initialSelection: inicial,
           label: const Text('Ocupación'),
-          leadingIcon: const Icon(Icons.work_outline),
+          leadingIcon: const Icon(Iconos.work_outline),
           hintText: 'Escribe para buscar',
           helperText: 'Elige de la lista',
           errorText: widget.errorText,

@@ -1,3 +1,4 @@
+import '../../ui/iconos.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -97,7 +98,7 @@ class _LoginPanelState extends State<LoginPanel> {
     return showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        icon: const Icon(Icons.devices_other_rounded, size: 36),
+        icon: const Icon(Iconos.devices_other_rounded, size: 36),
         title: const Text('Ya tienes una sesión activa'),
         content: Text(
           'Tu cuenta está abierta en $donde. Solo se permite una sesión a la vez.\n\n'
@@ -156,7 +157,7 @@ class _LoginPanelState extends State<LoginPanel> {
               autofillHints: const [AutofillHints.email],
               textInputAction: TextInputAction.next,
               decoration: const InputDecoration(
-                  labelText: 'Correo electrónico', prefixIcon: Icon(Icons.mail_outline), counterText: ''),
+                  labelText: 'Correo electrónico', prefixIcon: Icon(Iconos.mail_outline), counterText: ''),
               validator: validarCorreo,
             ),
             const SizedBox(height: 16),
@@ -172,10 +173,10 @@ class _LoginPanelState extends State<LoginPanel> {
               decoration: InputDecoration(
                 labelText: 'Contraseña',
                 counterText: '',
-                prefixIcon: const Icon(Icons.lock_outline),
+                prefixIcon: const Icon(Iconos.lock_outline),
                 suffixIcon: IconButton(
                   tooltip: _ocultar ? 'Mostrar contraseña' : 'Ocultar contraseña',
-                  icon: Icon(_ocultar ? Icons.visibility_outlined : Icons.visibility_off_outlined),
+                  icon: Icon(_ocultar ? Iconos.visibility_outlined : Iconos.visibility_off_outlined),
                   onPressed: () => setState(() => _ocultar = !_ocultar),
                 ),
               ),
@@ -298,7 +299,7 @@ class _Paso2faState extends State<_Paso2fa> {
             IconButton(
               tooltip: 'Volver',
               onPressed: _enviando ? null : widget.onVolver,
-              icon: const Icon(Icons.arrow_back),
+              icon: const Icon(Iconos.arrow_back),
             ),
             const SizedBox(width: 4),
             Expanded(
@@ -310,7 +311,7 @@ class _Paso2faState extends State<_Paso2fa> {
         const SizedBox(height: 12),
         Row(
           children: [
-            Icon(Icons.mark_email_read_outlined, color: t.colorScheme.primary),
+            Icon(Iconos.mark_email_read_outlined, color: t.colorScheme.primary),
             const SizedBox(width: 12),
             Expanded(
               child: Text.rich(TextSpan(children: [

@@ -19,6 +19,8 @@ public class CuentaResponse {
     private Long clienteId;
     private BigDecimal saldo;
     private EstatusCuenta estatus;
+    /** Si ya configuró su PIN de compras (nunca se expone el PIN). */
+    private boolean tienePin;
     private OffsetDateTime fechaApertura;
     private OffsetDateTime fechaActualizacion;
 }

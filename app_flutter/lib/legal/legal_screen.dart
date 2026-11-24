@@ -1,3 +1,4 @@
+import '../ui/iconos.dart';
 import 'package:flutter/material.dart';
 
 import '../ui/widgets.dart';
@@ -41,7 +42,7 @@ class LegalScreen extends StatelessWidget {
                       children: [
                         Row(
                           children: [
-                            Icon(Icons.lightbulb_outline, color: t.colorScheme.primary),
+                            Icon(Iconos.lightbulb_outline, color: t.colorScheme.primary),
                             const SizedBox(width: 8),
                             Text('En pocas palabras',
                                 style: t.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
@@ -54,7 +55,7 @@ class LegalScreen extends StatelessWidget {
                             child: Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Icon(Icons.check_circle, size: 18, color: t.colorScheme.primary),
+                                Icon(Iconos.check_circle, size: 18, color: t.colorScheme.primary),
                                 const SizedBox(width: 10),
                                 Expanded(child: Text(r, style: t.textTheme.bodyMedium?.copyWith(height: 1.45))),
                               ],

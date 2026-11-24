@@ -156,11 +156,14 @@ class Ocupacion {
 }
 
 class Cuenta {
-  Cuenta(this.numeroCuenta, this.saldo, this.estatus);
+  Cuenta(this.numeroCuenta, this.saldo, this.estatus, {this.tienePin = false});
 
   final String numeroCuenta;
   final double saldo;
   final String estatus;
+
+  /// Si ya configuró su PIN de compras (para elegir entre configurar o cambiar).
+  final bool tienePin;
 
   bool get activa => estatus == 'ACTIVA';
 
@@ -169,7 +172,8 @@ class Cuenta {
       : numeroCuenta;
 
   factory Cuenta.fromJson(Map<String, dynamic> j) =>
-      Cuenta(_str(j['numeroCuenta']), _num(j['saldo']) ?? 0, _str(j['estatus']));
+      Cuenta(_str(j['numeroCuenta']), _num(j['saldo']) ?? 0, _str(j['estatus']),
+          tienePin: j['tienePin'] == true);
 }
 
 class Perfil {

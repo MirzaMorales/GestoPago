@@ -1,3 +1,4 @@
+import '../../ui/iconos.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -50,7 +51,7 @@ class _ClientesAdminScreenState extends State<ClientesAdminScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Clientes'),
-        actions: [IconButton(tooltip: 'Actualizar', onPressed: _recargar, icon: const Icon(Icons.refresh)), const SizedBox(width: 8)],
+        actions: [IconButton(tooltip: 'Actualizar', onPressed: _recargar, icon: const Icon(Iconos.refresh)), const SizedBox(width: 8)],
       ),
       body: Centrado(
         maxWidth: 900,
@@ -69,9 +70,9 @@ class _ClientesAdminScreenState extends State<ClientesAdminScreen> {
                     ],
                     decoration: InputDecoration(
                       hintText: 'Nombre, correo, CURP, RFC o número de cuenta',
-                      prefixIcon: const Icon(Icons.search),
+                      prefixIcon: const Icon(Iconos.search),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(28)),
-                      suffixIcon: IconButton(tooltip: 'Buscar', icon: const Icon(Icons.arrow_forward), onPressed: _recargar),
+                      suffixIcon: IconButton(tooltip: 'Buscar', icon: const Icon(Iconos.arrow_forward), onPressed: _recargar),
                     ),
                     onSubmitted: (_) => _recargar(),
                   ),
@@ -100,7 +101,7 @@ class _ClientesAdminScreenState extends State<ClientesAdminScreen> {
                   if (snap.hasError) return Mensaje.error(snap.error!, _recargar);
                   final lista = snap.data!;
                   if (lista.isEmpty) {
-                    return const Mensaje(icono: Icons.person_search_outlined, titulo: 'Sin resultados',
+                    return const Mensaje(icono: Iconos.person_search_outlined, titulo: 'Sin resultados',
                         texto: 'Prueba con otro nombre, correo o número de cuenta.');
                   }
                   return ListView.separated(
@@ -193,7 +194,7 @@ class _ClienteAdminDetalleScreenState extends State<ClienteAdminDetalleScreen> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        icon: Icon(Icons.person_off_outlined, color: Theme.of(ctx).colorScheme.error, size: 36),
+        icon: Icon(Iconos.person_off_outlined, color: Theme.of(ctx).colorScheme.error, size: 36),
         title: const Text('Dar de baja al cliente'),
         content: Text('${c.nombreCompleto} ya no podrá iniciar sesión y sus cuentas quedarán inactivas. '
             'Su historial se conserva. ¿Continuar?'),
@@ -249,7 +250,7 @@ class _ClienteAdminDetalleScreenState extends State<ClienteAdminDetalleScreen> {
                                     style: t.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
                               ),
                               Chip(
-                                avatar: Icon(c.activo ? Icons.check_circle : Icons.block, size: 18,
+                                avatar: Icon(c.activo ? Iconos.check_circle : Iconos.block, size: 18,
                                     color: c.activo ? Estados.exito : Estados.rechazo),
                                 label: Text(c.activo ? 'Activo' : 'Inactivo'),
                               ),
@@ -270,19 +271,19 @@ class _ClienteAdminDetalleScreenState extends State<ClienteAdminDetalleScreen> {
                     const SizedBox(height: 20),
                     Text('Cuentas', style: t.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
                     const SizedBox(height: 8),
-                    if (c.cuentas.isEmpty) const Card(child: Mensaje(icono: Icons.account_balance_wallet_outlined, titulo: 'Sin cuentas')),
+                    if (c.cuentas.isEmpty) const Card(child: Mensaje(icono: Iconos.account_balance_wallet_outlined, titulo: 'Sin cuentas')),
                     for (final cuenta in c.cuentas)
                       Padding(
                         padding: const EdgeInsets.only(bottom: 10),
                         child: Card(
                           child: ListTile(
                             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                            leading: const Icon(Icons.account_balance_wallet_outlined),
+                            leading: const Icon(Iconos.account_balance_wallet_outlined),
                             title: Text('Cuenta ${cuenta.numeroCuenta}'),
                             subtitle: Text('Saldo ${dinero(cuenta.saldo)} · ${cuenta.estatus}'),
                             trailing: FilledButton.tonalIcon(
                               onPressed: cuenta.activa && c.activo ? () => _abonar(c, cuenta) : null,
-                              icon: const Icon(Icons.add_card),
+                              icon: const Icon(Iconos.add_card),
                               label: const Text('Abonar'),
                             ),
                           ),
@@ -292,7 +293,7 @@ class _ClienteAdminDetalleScreenState extends State<ClienteAdminDetalleScreen> {
                     if (c.activo)
                       OutlinedButton.icon(
                         onPressed: () => _darDeBaja(c),
-                        icon: const Icon(Icons.person_off_outlined),
+                        icon: const Icon(Iconos.person_off_outlined),
                         label: const Text('Dar de baja al cliente'),
                         style: OutlinedButton.styleFrom(foregroundColor: t.colorScheme.error),
                       ),
