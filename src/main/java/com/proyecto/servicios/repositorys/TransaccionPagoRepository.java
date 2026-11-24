@@ -23,16 +23,25 @@ public interface TransaccionPagoRepository extends JpaRepository<TransaccionPago
 
     Optional<TransaccionPago> findByCuentaIdAndIdempotencyKey(Long cuentaId, String idempotencyKey);
 
-    /** Historial del cliente: transacciones de todas sus cuentas con el estatus indicado (paginado). */
+    /** Historial del cliente: transacciones de todas sus cuentas con los estatus y el rango de fechas indicados. */
     @EntityGraph(attributePaths = "cuenta")
-    Page<TransaccionPago> findByCuentaClienteIdAndEstatus(Long clienteId, EstatusTransaccion estatus, Pageable pageable);
+    @Query("""
+            SELECT t FROM TransaccionPago t
+            WHERE t.cuenta.cliente.id = :clienteId
+              AND t.estatus IN :estatus
+              AND t.fechaCreacion >= :desde
+              AND t.fechaCreacion < :hasta
+            """)
+    Page<TransaccionPago> buscarHistorial(@Param("clienteId") Long clienteId,
+                                         @Param("estatus") Collection<EstatusTransaccion> estatus,
+                                         @Param("desde") OffsetDateTime desde,
+                                         @Param("hasta") OffsetDateTime hasta,
+                                         Pageable pageable);
 
     /** Una transacción del cliente, sin importar su estatus. */
+    @EntityGraph(attributePaths = "cuenta")
     Optional<TransaccionPago> findByIdAndCuentaClienteId(Long id, Long clienteId);
 
-    /** Una transacción solo si pertenece al cliente y tiene el estatus indicado. */
-    @EntityGraph(attributePaths = "cuenta")
-    Optional<TransaccionPago> findByIdAndCuentaClienteIdAndEstatus(Long id, Long clienteId, EstatusTransaccion estatus);
 
     /** Bloquea la fila de la transacción para resolverla (confirmar/revertir) sin carreras entre instancias. */
     @Lock(LockModeType.PESSIMISTIC_WRITE)

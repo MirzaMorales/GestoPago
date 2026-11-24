@@ -122,6 +122,7 @@ class PagoFlujoIntegrationTest {
     private PasswordEncoder passwordEncoder;
 
     private String numeroCuenta;
+    private Long clienteId;
 
     @BeforeEach
     void preparar() {
@@ -136,6 +137,7 @@ class PagoFlujoIntegrationTest {
                         .estado("CDMX").codigoPostal("06000").pais("Mexico").build())
                 .build();
         cliente = clienteRepository.save(cliente);
+        clienteId = cliente.getId();
         numeroCuenta = String.valueOf(1_000_000_000_000_000L + Math.abs(sufijo.hashCode()) % 1_000_000_000L);
         cuentaRepository.save(Cuenta.builder().numeroCuenta(numeroCuenta).cliente(cliente)
                 .saldo(new BigDecimal("500.00")).estatus(EstatusCuenta.ACTIVA)
@@ -225,6 +227,29 @@ class PagoFlujoIntegrationTest {
 
         assertEquals(new BigDecimal("500.00"), saldo());
         assertEquals(EstatusTransaccion.FALLIDA, ultimaTransaccion().getEstatus());
+    }
+
+    @Test
+    void historialFiltraPorEstadoYFechaEnLaBaseDeDatos() {
+        when(gestoPago.enviarTx(anyString())).thenReturn(respuestaGp(1), respuestaGp(55));
+        pagoService.pagarServicio(recarga("1234", "100.00"), llave());
+        assertEquals(CodigoErrorPago.GESTOPAGO_RECHAZADO, errorDe(recarga("1234", "100.00"), llave()));
+
+        var pagina = org.springframework.data.domain.PageRequest.of(0, 20,
+                org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "fechaCreacion", "id"));
+        java.time.OffsetDateTime ahora = java.time.OffsetDateTime.now();
+        var todos = java.util.EnumSet.allOf(EstatusTransaccion.class);
+
+        assertEquals(2, transaccionRepository.buscarHistorial(clienteId, todos, ahora.minusDays(1), ahora.plusDays(1), pagina)
+                .getTotalElements());
+        var rechazadas = transaccionRepository.buscarHistorial(clienteId, java.util.EnumSet.of(EstatusTransaccion.FALLIDA),
+                ahora.minusDays(1), ahora.plusDays(1), pagina);
+        assertEquals(1, rechazadas.getTotalElements());
+        assertEquals(numeroCuenta, rechazadas.getContent().get(0).getCuenta().getNumeroCuenta());
+        assertEquals(0, transaccionRepository.buscarHistorial(clienteId, todos, ahora.plusDays(1), ahora.plusDays(2), pagina)
+                .getTotalElements(), "fuera del rango de fechas");
+        assertEquals(0, transaccionRepository.buscarHistorial(clienteId + 999, todos, ahora.minusDays(1), ahora.plusDays(1), pagina)
+                .getTotalElements(), "otro cliente no ve estas compras");
     }
 
     @Test

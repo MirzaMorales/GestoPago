@@ -1,5 +1,6 @@
 package com.proyecto.servicios.model.response;
 
+import com.proyecto.servicios.model.EstadoCompra;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -32,4 +33,8 @@ public class CompraResponse {
     /** Cuenta con la que se pagó, enmascarada (solo los últimos 4 dígitos). */
     private String cuenta;
     private String estatus;
+    /** Resultado para el cliente: EXITOSA, RECHAZADA o PENDIENTE. */
+    private EstadoCompra estadoCompra;
+    /** Explicación para el cliente cuando la compra no fue exitosa (sin datos internos). */
+    private String motivo;
 }

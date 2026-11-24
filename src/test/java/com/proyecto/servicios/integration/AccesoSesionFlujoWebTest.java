@@ -125,7 +125,7 @@ class AccesoSesionFlujoWebTest {
                 Long.valueOf(i.<String>getArgument(0).substring("desafio-".length())),
                 plataformaDelDesafio, cerrarDelDesafio));
 
-        when(historialService.listar(anyString(), anyInt(), anyInt()))
+        when(historialService.listar(anyString(), any(com.proyecto.servicios.model.request.HistorialRequest.class)))
                 .thenReturn(PaginaResponse.<CompraResponse>builder().contenido(List.of()).pagina(0).tamano(20)
                         .totalElementos(0).totalPaginas(0).build());
     }

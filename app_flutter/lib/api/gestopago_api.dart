@@ -207,8 +207,23 @@ class GestoPagoApi {
     return (estadoCompraDe(d['estadoCompra'] as String?), '${d['mensaje'] ?? ''}');
   }
 
-  Future<Pagina<Compra>> historial({int pagina = 0, int tamano = 20}) async {
-    final json = await client.post('/pagos/historial', {'pagina': pagina, 'tamano': tamano});
+  /// [estado]: EXITOSA, RECHAZADA o PENDIENTE (null = todas). Fechas por día, ambos extremos incluidos.
+  Future<Pagina<Compra>> historial({
+    int pagina = 0,
+    int tamano = 20,
+    String? estado,
+    DateTime? desde,
+    DateTime? hasta,
+  }) async {
+    String dia(DateTime d) =>
+        '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+    final json = await client.post('/pagos/historial', {
+      'pagina': pagina,
+      'tamano': tamano,
+      'estado': ?estado,
+      if (desde != null) 'fechaInicio': dia(desde),
+      if (hasta != null) 'fechaFin': dia(hasta),
+    });
     final d = _datos(json);
     final contenido = (d['contenido'] as List? ?? [])
         .whereType<Map<String, dynamic>>()

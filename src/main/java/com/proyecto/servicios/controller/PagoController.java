@@ -42,7 +42,10 @@ public class PagoController {
         return ResponseEntity.ok(GenericResponse.ok(HttpStatus.OK, "Pago realizado correctamente", resultado));
     }
 
-    /** Historial de compras exitosas del usuario autenticado (paginado, más recientes primero). Datos en el body. */
+    /**
+     * Historial de compras del usuario autenticado (exitosas, rechazadas y pendientes), paginado y de la más
+     * reciente a la más antigua. Filtros opcionales en el body: estado y rango de fechas.
+     */
     @PostMapping("/historial")
     @PreAuthorize("hasRole('CLIENTE')")
     public ResponseEntity<GenericResponse<PaginaResponse<CompraResponse>>> historial(
@@ -50,10 +53,10 @@ public class PagoController {
             @Valid @RequestBody(required = false) HistorialRequest request) {
         HistorialRequest r = request != null ? request : new HistorialRequest();
         return ResponseEntity.ok(GenericResponse.ok(HttpStatus.OK, "Historial de compras",
-                historialService.listar(auth.getName(), r.getPagina(), r.getTamano())));
+                historialService.listar(auth.getName(), r)));
     }
 
-    /** Detalle de una compra exitosa del usuario autenticado. El identificador viaja en el body, no en la URL. */
+    /** Detalle de una compra del usuario autenticado, en cualquier estado. El identificador viaja en el body, no en la URL. */
     @PostMapping("/historial/detalle")
     @PreAuthorize("hasRole('CLIENTE')")
     public ResponseEntity<GenericResponse<CompraResponse>> detalleCompra(
