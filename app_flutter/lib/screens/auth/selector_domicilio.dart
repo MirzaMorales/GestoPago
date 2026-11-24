@@ -220,7 +220,15 @@ class _SelectorDomicilioState extends State<SelectorDomicilio> {
             }
           },
         ),
+        // Mismo orden que en "No lo sé": Estado → Municipio → Colonia (la colonia queda debajo del estado).
         if (_coloniasCp.isNotEmpty) ...[
+          const SizedBox(height: 14),
+          _SoloLectura(etiqueta: 'Estado', valor: _coloniasCp.first.estado, icono: Icons.map_outlined),
+          const SizedBox(height: 14),
+          _SoloLectura(
+              etiqueta: 'Municipio o alcaldía',
+              valor: _coloniasCp.first.municipio,
+              icono: Icons.location_city_outlined),
           const SizedBox(height: 14),
           _Lista<Colonia>(
             key: ValueKey('colonias-cp-${_cp.text}'),
@@ -231,13 +239,6 @@ class _SelectorDomicilioState extends State<SelectorDomicilio> {
             valor: _seleccion,
             onSelected: _elegir,
           ),
-          const SizedBox(height: 14),
-          _SoloLectura(
-              etiqueta: 'Municipio o alcaldía',
-              valor: _coloniasCp.first.municipio,
-              icono: Icons.location_city_outlined),
-          const SizedBox(height: 14),
-          _SoloLectura(etiqueta: 'Estado', valor: _coloniasCp.first.estado, icono: Icons.map_outlined),
         ],
       ];
 

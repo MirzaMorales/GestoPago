@@ -124,7 +124,7 @@ void main() {
 
     await tester.enterText(find.widgetWithText(TextFormField, 'CURP'), 'ABC');
     await tester.pump();
-    expect(find.text('La CURP no tiene un formato válido'), findsOneWidget);
+    expect(find.text('La CURP tiene 18 caracteres (faltan 15)'), findsOneWidget);
   });
 
   testWidgets('ADMIN abona saldo con tope y confirmación', (tester) async {

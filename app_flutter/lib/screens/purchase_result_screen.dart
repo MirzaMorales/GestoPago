@@ -77,6 +77,18 @@ class ResultadoCompra {
   final DateTime fecha;
 }
 
+/// A dónde quiere ir el usuario al salir de la pantalla de resultado.
+enum AccionResultado {
+  /// Ir al historial de compras.
+  verCompras,
+
+  /// Regresar al producto con los datos capturados para corregir y volver a intentar.
+  reintentar,
+
+  /// Regresar al catálogo.
+  catalogo,
+}
+
 class PurchaseResultScreen extends StatefulWidget {
   const PurchaseResultScreen({
     super.key,
@@ -105,6 +117,13 @@ class _PurchaseResultScreenState extends State<PurchaseResultScreen> {
   late EstadoCompra _estado = widget.resultado.estado;
   late String _mensaje = widget.resultado.mensaje;
   bool _consultando = false;
+
+  bool get _exitosa => _estado == EstadoCompra.exitosa;
+
+  /// La flecha de volver (y el botón atrás del sistema) regresan al producto si algo falló, o al catálogo si salió bien.
+  AccionResultado get _accionVolver => _exitosa ? AccionResultado.catalogo : AccionResultado.reintentar;
+
+  void _salir(AccionResultado accion) => Navigator.pop(context, accion);
 
   Future<void> _consultarEstado() async {
     final id = widget.resultado.idTransaccion;
@@ -175,148 +194,324 @@ class _PurchaseResultScreenState extends State<PurchaseResultScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final t = Theme.of(context);
-    final e = _estilo;
-    final pago = widget.resultado.pago;
-    final exitosa = _estado == EstadoCompra.exitosa;
+    final ancho = MediaQuery.sizeOf(context).width >= 900;
+    final hero = _Hero(
+      estilo: _estilo,
+      importe: widget.resultado.pago?.monto ?? widget.importe,
+      mensaje: _mensaje,
+      explicacion: _explicacion,
+      fecha: widget.resultado.fecha,
+    );
+    final comprobante = _Comprobante(
+      producto: widget.producto,
+      resultado: widget.resultado,
+      referencia: widget.referencia,
+      cuenta: widget.cuenta,
+      cargo: _cargo,
+      estado: _estado,
+    );
+    final detalleError = _exitosa
+        ? const SizedBox.shrink()
+        : Column(
+            children: [
+              const SizedBox(height: 16),
+              _DetalleError(resultado: widget.resultado, color: _estilo.color, estado: _estado),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton.icon(
+                  onPressed: _copiarDetalle,
+                  icon: const Icon(Icons.copy_all_outlined, size: 18),
+                  label: const Text('Copiar detalle para soporte'),
+                ),
+              ),
+            ],
+          );
+    final acciones = _Acciones(
+      estado: _estado,
+      puedeConsultar: widget.resultado.idTransaccion != null,
+      consultando: _consultando,
+      onConsultar: _consultarEstado,
+      onSalir: _salir,
+    );
 
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) {
-        if (!didPop) Navigator.pop(context, exitosa);
+        if (!didPop) _salir(_accionVolver);
       },
       child: Scaffold(
         appBar: AppBar(
-          automaticallyImplyLeading: false,
-          actions: [
-            IconButton(
-              tooltip: 'Cerrar',
-              icon: const Icon(Icons.close),
-              onPressed: () => Navigator.pop(context, exitosa),
-            ),
-          ],
+          leading: IconButton(
+            tooltip: _exitosa ? 'Volver al catálogo' : 'Volver al producto',
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => _salir(_accionVolver),
+          ),
+          title: const Text('Resultado de la compra'),
         ),
         body: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
           child: Centrado(
-            maxWidth: 520,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Semantics(
-                  liveRegion: true,
-                  child: Column(
+            maxWidth: 1000,
+            child: ancho
+                ? Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Container(
-                        width: 96,
-                        height: 96,
-                        decoration: BoxDecoration(
-                            color: e.color.withValues(alpha: 0.12), shape: BoxShape.circle),
-                        child: Icon(e.icono, color: e.color, size: 64),
+                      Expanded(
+                        flex: 5,
+                        child: Column(children: [hero, const SizedBox(height: 20), acciones]),
                       ),
-                      const SizedBox(height: 16),
-                      Text(e.titulo,
-                          style: t.textTheme.headlineSmall
-                              ?.copyWith(fontWeight: FontWeight.w800, color: e.color)),
-                      const SizedBox(height: 8),
-                      Text(_mensaje, textAlign: TextAlign.center, style: t.textTheme.titleSmall),
-                      const SizedBox(height: 6),
-                      Text(_explicacion,
-                          textAlign: TextAlign.center,
-                          style: t.textTheme.bodyMedium
-                              ?.copyWith(color: t.colorScheme.onSurfaceVariant)),
+                      const SizedBox(width: 24),
+                      Expanded(flex: 6, child: Column(children: [comprobante, detalleError])),
                     ],
-                  ),
-                ),
-                const SizedBox(height: 24),
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      children: [
-                        Row(
-                          children: [
-                            LogoServicio(
-                                url: widget.producto.logoUrl,
-                                nombre: widget.producto.servicio,
-                                size: 44),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(widget.producto.producto,
-                                  style: t.textTheme.titleSmall
-                                      ?.copyWith(fontWeight: FontWeight.w700)),
-                            ),
-                          ],
-                        ),
-                        const Divider(height: 28),
-                        FilaDato('Importe', dinero(pago?.monto ?? widget.importe), destacado: true),
-                        if (pago != null) ...[
-                          if ((pago.comision ?? 0) > 0) FilaDato('Comisión', dinero(pago.comision)),
-                          if (pago.referencia.isNotEmpty) FilaDato('Referencia', pago.referencia),
-                          FilaDato('Autorización', pago.numAutorizacion),
-                          FilaDato('ID GestoPago', pago.idTxGestoPago),
-                          FilaDato('Folio', '${pago.idTransaccion ?? ''}'),
-                          if (pago.fecha.isNotEmpty) FilaDato('Fecha', pago.fecha),
-                          FilaDato('Saldo restante', dinero(pago.saldoRestante)),
-                          if (pago.pinProducto.isNotEmpty)
-                            FilaDato('Código de la tarjeta', pago.pinProducto, destacado: true),
-                          if (pago.leyenda.isNotEmpty) ...[
-                            const Divider(height: 24),
-                            Text(pago.leyenda, style: t.textTheme.bodySmall),
-                          ],
-                        ] else ...[
-                          if (widget.referencia != null && widget.referencia!.isNotEmpty)
-                            FilaDato(widget.producto.montoLibre ? 'Referencia' : 'Teléfono', widget.referencia!),
-                          if (widget.cuenta != null) FilaDato('Cuenta', widget.cuenta!),
-                          FilaDato('Fecha y hora', fechaHora(widget.resultado.fecha)),
-                          if (widget.resultado.idTransaccion != null)
-                            FilaDato('Folio', '${widget.resultado.idTransaccion}'),
-                          FilaDato('Cargo a tu cuenta', _cargo),
-                        ],
-                      ],
-                    ),
-                  ),
-                ),
-                if (!exitosa) ...[
-                  const SizedBox(height: 16),
-                  _DetalleError(resultado: widget.resultado, color: e.color, estado: _estado),
-                  const SizedBox(height: 8),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: TextButton.icon(
-                      onPressed: _copiarDetalle,
-                      icon: const Icon(Icons.copy_all_outlined, size: 18),
-                      label: const Text('Copiar detalle para soporte'),
-                    ),
-                  ),
-                ],
-                const SizedBox(height: 16),
-                if (_estado == EstadoCompra.pendiente && widget.resultado.idTransaccion != null) ...[
-                  FilledButton.icon(
-                    onPressed: _consultando ? null : _consultarEstado,
-                    icon: _consultando
-                        ? const SizedBox(
-                            width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                        : const Icon(Icons.refresh),
-                    label: const Text('Consultar estado'),
-                  ),
-                  const SizedBox(height: 12),
-                ],
-                exitosa
-                    ? FilledButton.icon(
-                        onPressed: () => Navigator.pop(context, true),
-                        icon: const Icon(Icons.receipt_long),
-                        label: const Text('Ver mis compras'),
-                      )
-                    : OutlinedButton(
-                        onPressed: () => Navigator.pop(context, false),
-                        child: const Text('Volver al producto'),
-                      ),
-              ],
-            ),
+                  )
+                : Column(children: [hero, const SizedBox(height: 16), comprobante, detalleError]),
           ),
         ),
+        // En teléfono, las acciones quedan fijas abajo: siempre se ve cómo seguir.
+        bottomNavigationBar: ancho
+            ? null
+            : SafeArea(
+                child: Container(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surface,
+                    border: Border(top: BorderSide(color: Theme.of(context).colorScheme.outlineVariant)),
+                  ),
+                  child: acciones,
+                ),
+              ),
       ),
+    );
+  }
+}
+
+/// Resultado de un vistazo: icono, estado, importe y qué significa.
+class _Hero extends StatelessWidget {
+  const _Hero({
+    required this.estilo,
+    required this.importe,
+    required this.mensaje,
+    required this.explicacion,
+    required this.fecha,
+  });
+
+  final ({Color color, IconData icono, String titulo}) estilo;
+  final double importe;
+  final String mensaje;
+  final String explicacion;
+  final DateTime fecha;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context);
+    return Semantics(
+      liveRegion: true,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.fromLTRB(24, 28, 24, 26),
+        decoration: BoxDecoration(
+          color: estilo.color.withValues(alpha: 0.09),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: estilo.color.withValues(alpha: 0.25)),
+        ),
+        child: Column(
+          children: [
+            Container(
+              width: 84,
+              height: 84,
+              decoration: BoxDecoration(color: estilo.color.withValues(alpha: 0.16), shape: BoxShape.circle),
+              child: Icon(estilo.icono, color: estilo.color, size: 56),
+            ),
+            const SizedBox(height: 16),
+            Text(estilo.titulo,
+                textAlign: TextAlign.center,
+                style: t.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800, color: estilo.color)),
+            const SizedBox(height: 6),
+            Text(dinero(importe),
+                style: t.textTheme.displaySmall?.copyWith(fontWeight: FontWeight.w800, letterSpacing: -0.5)),
+            const SizedBox(height: 10),
+            Text(mensaje, textAlign: TextAlign.center, style: t.textTheme.titleSmall),
+            const SizedBox(height: 6),
+            Text(explicacion,
+                textAlign: TextAlign.center,
+                style: t.textTheme.bodyMedium?.copyWith(color: t.colorScheme.onSurfaceVariant)),
+            const SizedBox(height: 12),
+            Text(fechaHora(fecha), style: t.textTheme.bodySmall?.copyWith(color: t.colorScheme.onSurfaceVariant)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Datos de la compra, como un comprobante.
+class _Comprobante extends StatelessWidget {
+  const _Comprobante({
+    required this.producto,
+    required this.resultado,
+    required this.referencia,
+    required this.cuenta,
+    required this.cargo,
+    required this.estado,
+  });
+
+  final Producto producto;
+  final ResultadoCompra resultado;
+  final String? referencia;
+  final String? cuenta;
+  final String cargo;
+  final EstadoCompra estado;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context);
+    final pago = resultado.pago;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text('Resumen de la compra', style: t.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                LogoServicio(url: producto.logoUrl, nombre: producto.servicio, size: 44),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(producto.producto,
+                      style: t.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
+                ),
+              ],
+            ),
+            const Divider(height: 28),
+            if (pago != null) ...[
+              if ((pago.comision ?? 0) > 0) FilaDato('Comisión', dinero(pago.comision)),
+              if (pago.referencia.isNotEmpty) FilaDato('Referencia', pago.referencia),
+              FilaDato('Autorización', pago.numAutorizacion),
+              FilaDato('ID GestoPago', pago.idTxGestoPago),
+              FilaDato('Folio', '${pago.idTransaccion ?? ''}'),
+              if (pago.fecha.isNotEmpty) FilaDato('Fecha', pago.fecha),
+              FilaDato('Saldo restante', dinero(pago.saldoRestante)),
+              if (pago.pinProducto.isNotEmpty)
+                FilaDato('Código de la tarjeta', pago.pinProducto, destacado: true),
+              if (pago.leyenda.isNotEmpty) ...[
+                const Divider(height: 24),
+                Text(pago.leyenda, style: t.textTheme.bodySmall),
+              ],
+            ] else ...[
+              if (referencia != null && referencia!.isNotEmpty)
+                FilaDato(producto.montoLibre ? 'Referencia' : 'Teléfono', referencia!),
+              if (cuenta != null) FilaDato('Cuenta', cuenta!),
+              FilaDato('Fecha y hora', fechaHora(resultado.fecha)),
+              if (resultado.idTransaccion != null) FilaDato('Folio', '${resultado.idTransaccion}'),
+              FilaDato('Cargo a tu cuenta', cargo),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Botones claros según el resultado: lo principal arriba y lo secundario debajo.
+/// En teléfono los dos secundarios van lado a lado para ocupar poca altura.
+class _Acciones extends StatelessWidget {
+  const _Acciones({
+    required this.estado,
+    required this.puedeConsultar,
+    required this.consultando,
+    required this.onConsultar,
+    required this.onSalir,
+  });
+
+  final EstadoCompra estado;
+  final bool puedeConsultar;
+  final bool consultando;
+  final VoidCallback onConsultar;
+  final ValueChanged<AccionResultado> onSalir;
+
+  @override
+  Widget build(BuildContext context) {
+    final compacta = MediaQuery.sizeOf(context).width < 900;
+
+    final verCompras = OutlinedButton.icon(
+      onPressed: () => onSalir(AccionResultado.verCompras),
+      icon: const Icon(Icons.receipt_long_outlined),
+      label: Text(compacta ? 'Mis compras' : 'Ver mis compras'),
+    );
+    final catalogo = compacta
+        ? OutlinedButton.icon(
+            onPressed: () => onSalir(AccionResultado.catalogo),
+            icon: const Icon(Icons.storefront_outlined),
+            label: const Text('Catálogo'),
+          )
+        : TextButton.icon(
+            onPressed: () => onSalir(AccionResultado.catalogo),
+            icon: const Icon(Icons.storefront_outlined),
+            label: const Text('Ir al catálogo'),
+          );
+
+    final Widget? principal;
+    final List<Widget> secundarios;
+    switch (estado) {
+      case EstadoCompra.exitosa:
+        principal = FilledButton.icon(
+          onPressed: () => onSalir(AccionResultado.verCompras),
+          icon: const Icon(Icons.receipt_long),
+          label: const Text('Ver mis compras'),
+        );
+        secundarios = [
+          OutlinedButton.icon(
+            onPressed: () => onSalir(AccionResultado.catalogo),
+            icon: const Icon(Icons.add_shopping_cart),
+            label: const Text('Seguir comprando'),
+          ),
+        ];
+      case EstadoCompra.pendiente:
+        principal = puedeConsultar
+            ? FilledButton.icon(
+                onPressed: consultando ? null : onConsultar,
+                icon: consultando
+                    ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Icon(Icons.refresh),
+                label: const Text('Consultar estado'),
+              )
+            : null;
+        secundarios = [verCompras, catalogo];
+      case EstadoCompra.rechazada:
+      case EstadoCompra.errorComunicacion:
+        principal = FilledButton.icon(
+          onPressed: () => onSalir(AccionResultado.reintentar),
+          icon: const Icon(Icons.replay),
+          label: const Text('Intentar de nuevo'),
+        );
+        secundarios = [verCompras, catalogo];
+    }
+
+    final Widget bloqueSecundario = compacta && secundarios.length == 2
+        ? Row(children: [
+            Expanded(child: secundarios[0]),
+            const SizedBox(width: 8),
+            Expanded(child: secundarios[1]),
+          ])
+        : Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (var i = 0; i < secundarios.length; i++) ...[
+                if (i > 0) const SizedBox(height: 8),
+                secundarios[i],
+              ],
+            ],
+          );
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (principal != null) ...[principal, const SizedBox(height: 8)],
+        bloqueSecundario,
+      ],
     );
   }
 }

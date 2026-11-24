@@ -8,7 +8,9 @@ import '../../ui/filtros_entrada.dart';
 import '../../api/models.dart';
 import '../../legal/documentos_legales.dart';
 import '../../legal/legal_screen.dart';
+import '../../ui/validadores.dart';
 import 'auth_common.dart';
+import 'selector_ocupacion.dart';
 import 'selector_domicilio.dart';
 
 /// Alta de cliente en 4 pasos (POST /clientes). Las reglas reflejan las del backend,
@@ -60,6 +62,7 @@ class _RegisterPanelState extends State<RegisterPanel> {
   DateTime? _nacimiento;
   String? _sexo;
   String? _estadoCivil;
+  String? _ocupacion;
 
   /// Asentamiento elegido del catálogo SEPOMEX (colonia, municipio, estado y CP).
   Colonia? _colonia;
@@ -70,6 +73,18 @@ class _RegisterPanelState extends State<RegisterPanel> {
 
   TextEditingController _ctl(String campo, [String? inicial]) =>
       _c.putIfAbsent(campo, () => TextEditingController(text: inicial));
+
+  final _llaves = <String, GlobalKey<FormFieldState<String>>>{};
+
+  GlobalKey<FormFieldState<String>> _llave(String campo) =>
+      _llaves.putIfAbsent(campo, () => GlobalKey<FormFieldState<String>>());
+
+  /// Vuelve a validar campos ya escritos cuando cambia otro dato del que dependen (fecha de nacimiento, sexo).
+  void _revalidar(List<String> campos) {
+    for (final c in campos) {
+      if (_v(c).isNotEmpty) _llaves[c]?.currentState?.validate();
+    }
+  }
 
   String _v(String campo) => _c[campo]?.text.trim() ?? '';
 
@@ -118,7 +133,7 @@ class _RegisterPanelState extends State<RegisterPanel> {
       'correo': _v('correo').toLowerCase(),
       'telefonoMovil': _v('telefonoMovil'),
       if (opcional('telefonoAlternativo') != null) 'telefonoAlternativo': _v('telefonoAlternativo'),
-      'ocupacion': _v('ocupacion'),
+      'ocupacion': _ocupacion,
       'empresa': _v('empresa'),
       'ingresoMensual': double.parse(_v('ingresoMensual')),
       'domicilio': {
@@ -212,6 +227,7 @@ class _RegisterPanelState extends State<RegisterPanel> {
     return Padding(
       padding: const EdgeInsets.only(bottom: 14),
       child: TextFormField(
+        key: _llave(campo),
         controller: _ctl(campo, inicial),
         keyboardType: teclado,
         // Por defecto, solo texto seguro (sin HTML ni caracteres de control).
@@ -239,11 +255,6 @@ class _RegisterPanelState extends State<RegisterPanel> {
       ),
     );
   }
-
-  String? _soloLetras(String s) =>
-      RegExp(r"^[\p{L}\p{M}\s.'’\-]{2,50}$", unicode: true).hasMatch(s)
-          ? null
-          : 'Usa solo letras (2 a 50)';
 
   Widget _seleccion(String campo, String etiqueta, IconData icono, List<String> opciones,
       String? valor, ValueChanged<String?> cambiar) {
@@ -299,19 +310,20 @@ class _RegisterPanelState extends State<RegisterPanel> {
         _ctl('fechaNacimiento').text = DateFormat("d 'de' MMMM 'de' yyyy", 'es_MX').format(f);
         _errServidor.remove('fechaNacimiento');
       });
+      _revalidar(const ['curp', 'rfc']);
     }
   }
 
   List<Widget> _pasoPersonal() => [
         _fila([
-          _campo('nombre', 'Nombre', formato: [FiltrosEntrada.soloLetras], maxLength: 50, icono: Icons.person_outline, validar: _soloLetras,
+          _campo('nombre', 'Nombre', formato: [FiltrosEntrada.soloLetras], maxLength: 50, icono: Icons.person_outline, validar: validarNombrePropio,
               autofill: const [AutofillHints.givenName]),
-          _campo('segundoNombre', 'Segundo nombre', formato: [FiltrosEntrada.soloLetras], maxLength: 50, opcional: true, validar: _soloLetras),
+          _campo('segundoNombre', 'Segundo nombre', formato: [FiltrosEntrada.soloLetras], maxLength: 50, opcional: true, validar: validarNombrePropio),
         ]),
         _fila([
-          _campo('apellidoPaterno', 'Apellido paterno', formato: [FiltrosEntrada.soloLetras], maxLength: 50, validar: _soloLetras,
+          _campo('apellidoPaterno', 'Apellido paterno', formato: [FiltrosEntrada.soloLetras], maxLength: 50, validar: validarNombrePropio,
               autofill: const [AutofillHints.familyName]),
-          _campo('apellidoMaterno', 'Apellido materno', formato: [FiltrosEntrada.soloLetras], maxLength: 50, validar: _soloLetras),
+          _campo('apellidoMaterno', 'Apellido materno', formato: [FiltrosEntrada.soloLetras], maxLength: 50, validar: validarNombrePropio),
         ]),
         Padding(
           padding: const EdgeInsets.only(bottom: 14),
@@ -331,7 +343,10 @@ class _RegisterPanelState extends State<RegisterPanel> {
         ),
         _fila([
           _seleccion('sexo', 'Sexo', Icons.wc_outlined, const ['Masculino', 'Femenino'], _sexo,
-              (v) => setState(() => _sexo = v)),
+              (v) {
+                setState(() => _sexo = v);
+                _revalidar(const ['curp']);
+              }),
           _seleccion('estadoCivil', 'Estado civil', Icons.favorite_border,
               const ['Soltero(a)', 'Casado(a)', 'Unión libre', 'Divorciado(a)', 'Viudo(a)'],
               _estadoCivil, (v) => setState(() => _estadoCivil = v)),
@@ -356,19 +371,15 @@ class _RegisterPanelState extends State<RegisterPanel> {
             maxLength: 18,
             mayusculas: TextCapitalization.characters,
             formato: [_Mayusculas(), FilteringTextInputFormatter.allow(RegExp(r'[A-Za-z0-9]'))],
-            ayuda: '18 caracteres',
-            validar: (s) => RegExp(r'^[A-Z]{4}\d{6}[HM][A-Z]{5}[A-Z0-9]\d$').hasMatch(s.toUpperCase())
-                ? null
-                : 'La CURP no tiene un formato válido'),
+            ayuda: '18 caracteres; debe coincidir con tu fecha de nacimiento y sexo',
+            validar: (s) => validarCurp(s, nacimiento: _nacimiento, sexo: _sexo)),
         _campo('rfc', 'RFC',
             icono: Icons.description_outlined,
             maxLength: 13,
             mayusculas: TextCapitalization.characters,
             formato: [_Mayusculas(), FilteringTextInputFormatter.allow(RegExp(r'[A-Za-z0-9&Ññ]'))],
-            ayuda: 'Con homoclave, 12 o 13 caracteres',
-            validar: (s) => RegExp(r'^[A-Z&Ñ]{3,4}\d{6}[A-Z0-9]{3}$').hasMatch(s.toUpperCase())
-                ? null
-                : 'El RFC no tiene un formato válido'),
+            ayuda: '13 caracteres con homoclave; debe coincidir con tu fecha de nacimiento',
+            validar: (s) => validarRfc(s, nacimiento: _nacimiento)),
       ];
 
   List<Widget> _pasoContacto() => [
@@ -388,26 +399,42 @@ class _RegisterPanelState extends State<RegisterPanel> {
               maxLength: 10,
               formato: [FilteringTextInputFormatter.digitsOnly],
               autofill: const [AutofillHints.telephoneNumber],
-              validar: (s) => RegExp(r'^\d{10}$').hasMatch(s) ? null : 'Deben ser 10 dígitos'),
+              validar: validarTelefono),
           _campo('telefonoAlternativo', 'Otro teléfono',
               opcional: true,
               teclado: TextInputType.phone,
               maxLength: 10,
               formato: [FilteringTextInputFormatter.digitsOnly],
-              validar: (s) => RegExp(r'^\d{10}$').hasMatch(s) ? null : 'Deben ser 10 dígitos'),
+              validar: validarTelefono),
         ]),
-        _fila([
-          _campo('ocupacion', 'Ocupación', icono: Icons.work_outline, maxLength: 100),
-          _campo('empresa', 'Empresa', icono: Icons.apartment_outlined, maxLength: 100),
-        ]),
+        FormField<String>(
+          initialValue: _ocupacion,
+          validator: (_) => _ocupacion == null ? 'Elige una ocupación de la lista' : null,
+          builder: (campo) => Padding(
+            padding: const EdgeInsets.only(bottom: 14),
+            child: SelectorOcupacion(
+              api: widget.session.api,
+              inicial: _ocupacion,
+              errorText: campo.errorText ?? _errServidor['ocupacion'],
+              onChanged: (o) {
+                setState(() {
+                  _ocupacion = o;
+                  _errServidor.remove('ocupacion');
+                });
+                campo.didChange(o);
+              },
+            ),
+          ),
+        ),
+        _campo('empresa', 'Empresa',
+            icono: Icons.apartment_outlined,
+            maxLength: 100,
+            validar: (s) => validarTextoMinimo(s, nombre: 'La empresa')),
         _campo('ingresoMensual', 'Ingreso mensual',
             icono: Icons.payments_outlined,
             teclado: const TextInputType.numberWithOptions(decimal: true),
             formato: [FilteringTextInputFormatter.allow(RegExp(r'^\d{0,13}\.?\d{0,2}'))],
-            validar: (s) {
-              final n = double.tryParse(s);
-              return n == null || n <= 0 ? 'Escribe un importe mayor a cero' : null;
-            }),
+            validar: validarIngreso),
       ];
 
   /// Errores del servidor sobre colonia, municipio, estado o CP (los elige el catálogo, no se escriben).
@@ -441,10 +468,14 @@ class _RegisterPanelState extends State<RegisterPanel> {
           ),
         ),
         const SizedBox(height: 14),
-        _campo('domicilio.calle', 'Calle', icono: Icons.signpost_outlined, maxLength: 100,
+        _campo('domicilio.calle', 'Calle',
+            icono: Icons.signpost_outlined,
+            maxLength: maxCalle,
+            ayuda: 'Entre 3 y $maxCalle caracteres',
+            validar: validarCalle,
             autofill: const [AutofillHints.streetAddressLine1]),
         _fila([
-          _campo('domicilio.numeroExterior', 'Número exterior', maxLength: 20,
+          _campo('domicilio.numeroExterior', 'Número exterior', maxLength: 20, validar: validarNumeroExterior,
               mayusculas: TextCapitalization.characters),
           _campo('domicilio.numeroInterior', 'Número interior', opcional: true, maxLength: 20,
               mayusculas: TextCapitalization.characters),

@@ -108,6 +108,42 @@ class EntradasMaliciosasValidationTest {
     }
 
     @Test
+    void telefonosEImporteFueraDeRangoSeRechazan() {
+        assertFalse(validar(r -> r.setTelefonoMovil("0123456789")).isEmpty());
+        assertFalse(validar(r -> r.setTelefonoMovil("1234567890")).isEmpty());
+        assertFalse(validar(r -> r.setTelefonoAlternativo("1234567890")).isEmpty());
+        assertTrue(validar(r -> r.setTelefonoAlternativo(null)).isEmpty(), "el alternativo es opcional");
+        assertFalse(validar(r -> r.setIngresoMensual(new BigDecimal("10000000.01"))).isEmpty());
+        assertTrue(validar(r -> r.setIngresoMensual(new BigDecimal("10000000.00"))).isEmpty());
+    }
+
+    @Test
+    void nombresConMenosDeTresCaracteresSeRechazan() {
+        assertFalse(validar(r -> r.setNombre("Al")).isEmpty());
+        assertFalse(validar(r -> r.setApellidoPaterno("Li")).isEmpty());
+        assertFalse(validar(r -> r.setApellidoMaterno("Ox")).isEmpty());
+        assertFalse(validar(r -> r.setSegundoNombre("Jo")).isEmpty());
+        assertTrue(validar(r -> r.setSegundoNombre("")).isEmpty(), "el segundo nombre es opcional");
+        assertTrue(validar(r -> r.setSegundoNombre("Sol")).isEmpty());
+        assertFalse(validar(r -> r.setOcupacion("QA")).isEmpty());
+        assertFalse(validar(r -> r.setEmpresa("XY")).isEmpty());
+        assertFalse(validar(r -> r.getDomicilio().setCalle("A1")).isEmpty());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"mmorales@gmail.c", "a..b@gmail.com", ".a@gmail.com", "a.@gmail.com",
+            "a@-gmail.com", "a@gmail..com", "a@gmail.c0m", "a@.com"})
+    void correosConDominioOFormatoInvalidoSeRechazan(String correo) {
+        assertFalse(validar(r -> r.setCorreo(correo)).isEmpty(), correo);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"mmorales@gmail.com", "ana.lopez+gp@correo.unam.mx", "a_b-c@sub.dominio.com.mx"})
+    void correosComunesSonValidos(String correo) {
+        assertTrue(validar(r -> r.setCorreo(correo)).isEmpty(), correo);
+    }
+
+    @Test
     void contrasenasEnormesSeRechazan() {
         String enorme = "Aa1!" + "x".repeat(200);
         assertFalse(validar(r -> r.setPassword(enorme)).isEmpty());
@@ -117,7 +153,9 @@ class EntradasMaliciosasValidationTest {
     @Test
     void textosQueExcedenSuLongitudSeRechazan() {
         assertFalse(validar(r -> r.setOcupacion("a".repeat(101))).isEmpty());
-        assertFalse(validar(r -> r.getDomicilio().setCalle("a".repeat(101))).isEmpty());
+        assertFalse(validar(r -> r.getDomicilio().setCalle("a".repeat(81))).isEmpty());
+        // La calle real más larga que se conoce (72 caracteres, Płock, Polonia) debe poder capturarse
+        assertTrue(validar(r -> r.getDomicilio().setCalle("Dwudziestego Pierwszego Praskiego Pułku Piechoty imienia Dzieci Warszawy")).isEmpty());
     }
 
     @Test

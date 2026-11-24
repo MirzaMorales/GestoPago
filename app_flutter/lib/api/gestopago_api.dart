@@ -55,6 +55,11 @@ class GestoPagoApi {
       .map(Colonia.fromJson)
       .toList();
 
+  Future<List<Ocupacion>> ocupaciones() async => _lista(await client.get('/catalogos/ocupaciones'))
+      .whereType<Map<String, dynamic>>()
+      .map(Ocupacion.fromJson)
+      .toList();
+
   Future<List<String>> estados() async =>
       _lista(await client.get('/catalogos/estados')).map((e) => '$e').toList();
 

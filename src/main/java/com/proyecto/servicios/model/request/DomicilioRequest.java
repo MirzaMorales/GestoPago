@@ -15,7 +15,8 @@ import lombok.NoArgsConstructor;
 public class DomicilioRequest {
 
     @NotBlank(message = "La calle es obligatoria")
-    @Size(max = 100, message = "La calle no puede exceder 100 caracteres")
+    /** Tope: el nombre de calle real más largo que se conoce mide 72 caracteres; 80 deja margen. */
+    @Size(min = 3, max = 80, message = "La calle debe tener entre 3 y 80 caracteres")
     @Pattern(regexp = PatronesSeguros.TEXTO_LIBRE, message = PatronesSeguros.MENSAJE_TEXTO_LIBRE)
     private String calle;
 

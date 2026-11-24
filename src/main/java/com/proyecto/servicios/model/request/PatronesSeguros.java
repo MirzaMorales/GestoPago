@@ -24,7 +24,8 @@ public final class PatronesSeguros {
     public static final String MENSAJE_SOLO_LETRAS = "Solo se admiten letras y espacios";
 
     /** Correo sin comillas ni comentarios (formas válidas en RFC 5322 que no usa ningún usuario real). */
-    public static final String CORREO = "^[A-Za-z0-9._%+\\-]+@[A-Za-z0-9.\\-]+\\.[A-Za-z]{2,}$";
+    public static final String CORREO =
+            "^(?!\\.)(?!.*\\.\\.)[A-Za-z0-9._%+\\-]{1,64}(?<!\\.)@(?:[A-Za-z0-9](?:[A-Za-z0-9\\-]{0,61}[A-Za-z0-9])?\\.)+[A-Za-z]{2,24}$";
     public static final String MENSAJE_CORREO = "El formato del correo electrónico es inválido";
 
     /** Fragmento de correo para búsquedas parciales. */

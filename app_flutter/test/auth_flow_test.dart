@@ -53,15 +53,17 @@ void main() {
     await tester.enterText(campo('Nombre'), 'Ana');
     await tester.enterText(campo('Apellido paterno'), 'López');
     await tester.enterText(campo('Apellido materno'), 'Ruiz');
-    await tester.enterText(campo('CURP'), 'LORA000101MDFPZNA1');
-    await tester.enterText(campo('RFC'), 'LORA000101AB1');
+    // El calendario propone el 1 de enero de (año actual - 25): la CURP y el RFC deben llevar esa fecha.
+    final fecha = '${((DateTime.now().year - 25) % 100).toString().padLeft(2, '0')}0101';
+    await tester.enterText(campo('CURP'), 'LORA${fecha}MDFPZNA1');
+    await tester.enterText(campo('RFC'), 'LORA${fecha}AB1');
 
-    // CURP inválida bloquea el avance
+    // CURP incompleta bloquea el avance
     await tester.enterText(campo('CURP'), 'MAL');
     await tester.tap(find.text('Continuar'));
     await tester.pump();
-    expect(find.text('La CURP no tiene un formato válido'), findsOneWidget);
-    await tester.enterText(campo('CURP'), 'LORA000101MDFPZNA1');
+    expect(find.text('La CURP tiene 18 caracteres (faltan 15)'), findsOneWidget);
+    await tester.enterText(campo('CURP'), 'LORA${fecha}MDFPZNA1');
 
     // Fecha de nacimiento por el selector
     await tester.tap(campo('Fecha de nacimiento'));
