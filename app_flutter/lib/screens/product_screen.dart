@@ -115,6 +115,8 @@ class _ProductScreenState extends State<ProductScreen> {
         producto: p,
         importe: importe,
         resultado: resultado,
+        referencia: p.esCanjeable ? null : _valorReferencia,
+        cuenta: _cuenta?.enmascarada,
       ),
     ));
     if (!mounted) return;
